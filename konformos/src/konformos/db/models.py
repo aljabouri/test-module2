@@ -65,6 +65,7 @@ class User(TimestampMixin, Base):
     hashed_password: Mapped[str] = mapped_column(Text)
     role: Mapped[str] = mapped_column(Text)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_secret: Mapped[str | None] = mapped_column(Text)
 
 
 class Subscription(TimestampMixin, Base):
@@ -267,6 +268,43 @@ class Dossier(TimestampMixin, Base):
     pdf_url: Mapped[str | None] = mapped_column(Text)
     dossier_hash: Mapped[str] = mapped_column(Text, unique=True)
     expert_signature_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+
+
+# ── نظام 10: الإشعارات + الوكالات + Flow C (migration 0004) ──────────────
+class Notification(Base):
+    __tablename__ = "notifications"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    type: Mapped[str] = mapped_column(Text)
+    payload: Mapped[dict | None] = mapped_column(JSONB)
+    channel: Mapped[str] = mapped_column(Text, default="email")
+    status: Mapped[str] = mapped_column(Text, default="queued")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class WebhookEndpoint(Base):
+    __tablename__ = "webhook_endpoints"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    url: Mapped[str] = mapped_column(Text)
+    secret: Mapped[str] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    failure_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class PropertyGrant(Base):
+    __tablename__ = "property_grants"
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    property_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+
+
+class DeployToken(Base):
+    __tablename__ = "deploy_tokens"
+    token: Mapped[str] = mapped_column(Text, primary_key=True)
+    property_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
 class ExpertReview(TimestampMixin, Base):

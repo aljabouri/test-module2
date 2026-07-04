@@ -71,6 +71,37 @@ class AuthError(Exception):
         super().__init__(message)
 
 
+# ── TOTP (RFC 6238, stdlib only) — RBAC-02 ───────────────────────────────
+import base64
+import hmac as hmac_module
+import hashlib
+import secrets as py_secrets
+import struct
+import time
+
+
+def generate_totp_secret() -> str:
+    return base64.b32encode(py_secrets.token_bytes(20)).decode()
+
+
+def totp_code(secret: str, at: float | None = None,
+              step: int = 30, digits: int = 6) -> str:
+    counter = int((at if at is not None else time.time()) // step)
+    key = base64.b32decode(secret)
+    digest = hmac_module.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    offset = digest[-1] & 0xF
+    value = (struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF)
+    return f"{value % 10 ** digits:0{digits}d}"
+
+
+def verify_totp(secret: str, code: str, window: int = 1) -> bool:
+    now = time.time()
+    return any(
+        hmac_module.compare_digest(totp_code(secret, now + drift * 30), code)
+        for drift in range(-window, window + 1)
+    )
+
+
 def decode_token(token: str) -> TokenClaims:
     try:
         payload = jwt.decode(token, jwt_secret(), algorithms=["HS256"])

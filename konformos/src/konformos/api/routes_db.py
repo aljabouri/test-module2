@@ -156,6 +156,7 @@ def register(body: RegisterBody, session: Session = Depends(db_session)):
 class LoginBody(BaseModel):
     email: str
     password: str
+    totp_code: Optional[str] = None
 
 
 @router.post("/v1/auth/login")
@@ -166,6 +167,10 @@ def login(body: LoginBody, session: Session = Depends(db_session)):
     ).scalar_one_or_none()
     if user is None or not verify_password(user.hashed_password, body.password):
         raise ApiError(401, "auth_required", "بيانات دخول غير صحيحة.")
+    if user.mfa_enabled and user.mfa_secret:
+        from konformos.api.security import verify_totp
+        if not body.totp_code or not verify_totp(user.mfa_secret, body.totp_code):
+            raise ApiError(401, "mfa_required", "رمز TOTP مطلوب أو غير صحيح.")
     return {"token": create_token(
         TokenClaims(user.id, user.organization_id, user.role, user.mfa_enabled)
     )}
@@ -231,17 +236,34 @@ def create_property(body: PropertyBody, auth=Depends(authed)):
     return {"id": str(prop.id)}
 
 
+def _grant_scope(session: Session, claims: TokenClaims) -> set[uuid.UUID] | None:
+    """BR-CUST-04: a member with explicit grants sees only those properties.
+    Returns None = unrestricted (owner/admin, or member with no grants)."""
+    if claims.role != "member":
+        return None
+    from konformos.db.models import PropertyGrant
+    granted = set(session.execute(
+        select(PropertyGrant.property_id)
+        .where(PropertyGrant.user_id == claims.user_id)
+    ).scalars().all())
+    return granted or None
+
+
 @router.get("/v1/properties")
 def list_properties(auth=Depends(authed)):
-    session, _ = auth
+    session, claims = auth
     rows = session.execute(select(Property)).scalars().all()
+    scope = _grant_scope(session, claims)
+    if scope is not None:
+        rows = [p for p in rows if p.id in scope]
     return {"properties": [
         {"id": str(p.id), "url": p.url, "label": p.label,
          "readiness_current": p.readiness_current} for p in rows
     ]}
 
 
-def _get_property(session: Session, property_id: str) -> Property:
+def _get_property(session: Session, property_id: str,
+                  claims: TokenClaims | None = None) -> Property:
     try:
         pid = uuid.UUID(property_id)
     except ValueError:
@@ -249,13 +271,17 @@ def _get_property(session: Session, property_id: str) -> Property:
     prop = session.get(Property, pid)  # RLS already scopes to the org
     if prop is None:
         raise not_found()
+    if claims is not None:
+        scope = _grant_scope(session, claims)
+        if scope is not None and prop.id not in scope:
+            raise not_found()  # RBAC-03: no existence leak within the org
     return prop
 
 
 @router.get("/v1/properties/{property_id}")
 def property_detail(property_id: str, auth=Depends(authed)):
-    session, _ = auth
-    prop = _get_property(session, property_id)
+    session, claims = auth
+    prop = _get_property(session, property_id, claims)
     return {"id": str(prop.id), "url": prop.url, "label": prop.label,
             "readiness_current": prop.readiness_current,
             "current_fingerprint_id": str(prop.current_fingerprint_id)
@@ -266,7 +292,7 @@ def property_detail(property_id: str, auth=Depends(authed)):
 def put_profile(property_id: str, body: dict, auth=Depends(authed)):
     session, claims = auth
     require_role(claims, "owner", "admin")
-    prop = _get_property(session, property_id)
+    prop = _get_property(session, property_id, claims)
     profile = ComplianceProfile.model_validate({**body, "property_id": str(prop.id)})
     row = ComplianceProfileRow(
         property_id=prop.id,
@@ -283,8 +309,8 @@ def put_profile(property_id: str, body: dict, auth=Depends(authed)):
 
 @router.post("/v1/properties/{property_id}/fingerprint")
 def run_fingerprint(property_id: str, auth=Depends(authed)):
-    session, _ = auth
-    prop = _get_property(session, property_id)
+    session, claims = auth
+    prop = _get_property(session, property_id, claims)
     from konformos.fingerprint.engine import fingerprint_html
     from konformos.scan.crawler import UnsafeUrl, crawl
 
@@ -316,8 +342,8 @@ def run_fingerprint(property_id: str, auth=Depends(authed)):
 
 @router.get("/v1/properties/{property_id}/timeline")
 def property_timeline(property_id: str, auth=Depends(authed)):
-    session, _ = auth
-    prop = _get_property(session, property_id)
+    session, claims = auth
+    prop = _get_property(session, property_id, claims)
     rows = session.execute(
         select(TimelineEventRow).where(TimelineEventRow.property_id == prop.id)
         .order_by(TimelineEventRow.sequence_number)
@@ -339,7 +365,7 @@ class ScanBody(BaseModel):
 def start_scan(property_id: str, body: ScanBody, request: Request, auth=Depends(authed)):
     session, claims = auth
     require_role(claims, "owner", "member", "admin")
-    prop = _get_property(session, property_id)
+    prop = _get_property(session, property_id, claims)
     subscription = get_subscription(session, claims.organization_id)
     caps = _guard_billing(check_scan_allowance, session, claims.organization_id, subscription)
 
@@ -485,10 +511,24 @@ def get_fix(finding_id: str, request: Request, auth=Depends(authed)):
                     "seen_in_stores": entry.occurrence_count,
                     "notice": "إصلاح مُختبَر من قاعدة المعرفة — راجعه مطوّر قبل التطبيق."}
 
-    # 2) template guidance from the catalog rule (LLM adapter plugs in here)
+    # 2) Claude API generation (BR-FIX-01 step 2) when credentials exist
     rule = request.app.state.catalog.rules.get(finding.rule_code)
     if rule is None:
         raise not_found()
+    generator = getattr(request.app.state, "fix_generator", None)
+    if generator is not None and generator.available:
+        generated = generator.generate(
+            rule_title=rule.title, rule_description=rule.description,
+            severity=finding.severity,
+            selector=(finding.location or {}).get("selector", ""),
+            snippet=str((finding.evidence or {}).get("snippet", ""))[:1000],
+            stack_hint=signature,
+        )
+        if generated:
+            return {"source": "ai_generated", "fix": generated,
+                    "notice": "اقتراح مولَّد آلياً عبر Claude — يتطلب مراجعة مطوّر قبل التطبيق (BR-FIX-02)."}
+
+    # 3) template guidance from the catalog rule (final fallback)
     guidance = rule.description
     if not rule.automatable:
         guidance += " | إرشاد الخبير: " + rule.test_logic.expert_guidance
@@ -505,7 +545,7 @@ def get_fix(finding_id: str, request: Request, auth=Depends(authed)):
 def create_dossier_db(property_id: str, auth=Depends(authed)):
     session, claims = auth
     require_role(claims, "owner", "admin")
-    prop = _get_property(session, property_id)
+    prop = _get_property(session, property_id, claims)
     subscription = get_subscription(session, claims.organization_id)
     _guard_billing(check_dossier_allowance, session, claims.organization_id, subscription)
 
@@ -731,7 +771,10 @@ def publish_pack(version: str, request: Request, auth=Depends(authed)):
         )
     ).scalar_one_or_none()
     if current is not None:
-        current.status = "superseded"  # atomic within this transaction
+        current.status = "superseded"
+        # flush the supersede FIRST — the INV-RP-02 partial unique index is
+        # not deferrable, so statement order inside the transaction matters
+        session.flush()
     pack.status = "active"
     pack.signed_by = claims.user_id
     pack.signed_at = datetime.now(timezone.utc)

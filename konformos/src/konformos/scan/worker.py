@@ -84,16 +84,29 @@ class ScanWorker:
             )))
         return packs
 
-    def _fetch_pages(self, scan: Scan) -> tuple[list[tuple[str, str]], list[dict]]:
+    def _gather(self, scan: Scan):
+        """Returns (pages, extra_raw_issues, skipped, pages_scanned) per adapter."""
+        from pathlib import Path
+
         snapshot = scan.profile_snapshot or {}
         input_ref = snapshot.get("input_ref", {})
         if scan.input_type == "url":
             from konformos.scan.crawler import crawl
-            result = crawl(
-                input_ref["url"],
-                max_pages=snapshot.get("page_cap", 1),
-            )
-            return result.pages, result.pages_skipped
+            result = crawl(input_ref["url"], max_pages=snapshot.get("page_cap", 1))
+            return result.pages, [], result.pages_skipped, len(result.pages)
+        if scan.input_type in ("theme", "plugin"):
+            from konformos.scan.adapters import pages_from_theme_zip
+            pages = pages_from_theme_zip(Path(input_ref["file"]).read_bytes())
+            return pages, [], [], len(pages)
+        if scan.input_type == "design_system":
+            from konformos.scan.adapters import pages_from_components
+            pages = pages_from_components(input_ref["components"])
+            return pages, [], [], len(pages)
+        if scan.input_type == "pdf":
+            from konformos.scan.adapters import pdf_raw_issues
+            issues, page_count = pdf_raw_issues(
+                Path(input_ref["file"]).read_bytes(), input_ref.get("name", "document.pdf"))
+            return [], issues, [], page_count
         raise ValueError(f"input_type {scan.input_type} not implemented yet")
 
     def _run(self, scan_id: uuid.UUID) -> None:
@@ -132,29 +145,29 @@ class ScanWorker:
         scan.engine_versions = {ENGINE_NAME: ENGINE_VERSION}  # INV-SC-02
         session.flush()
 
-        pages, skipped = self._fetch_pages(scan)
-        if not pages:
+        pages, raw, skipped, pages_scanned = self._gather(scan)
+        if not pages and not raw:
             raise RuntimeError("BR-EVAL-07: no successfully scanned pages")
 
-        raw = []
         for path, html in pages:
-            raw.extend(scan_html(path, html))
-        try:  # axe as second engine when the environment allows
-            from konformos.scan.axe_engine import AxeEngine, AxeUnavailable
-            try:
-                axe = AxeEngine()
-                raw.extend(axe.scan_pages(pages))
-                scan.engine_versions["axe-core"] = axe.version or "unknown"
-            except AxeUnavailable:
+            raw = raw + scan_html(path, html)
+        if pages and scan.input_type == "url":
+            try:  # axe as second engine on live pages when the env allows
+                from konformos.scan.axe_engine import AxeEngine, AxeUnavailable
+                try:
+                    axe = AxeEngine()
+                    raw = raw + axe.scan_pages(pages)
+                    scan.engine_versions["axe-core"] = axe.version or "unknown"
+                except AxeUnavailable:
+                    pass
+            except ImportError:
                 pass
-        except ImportError:
-            pass
 
         normalization = normalize(raw, self._catalog)
         results = compute_readiness(
             ruleset, self._catalog.rules,
             [f.to_finding_input() for f in normalization.findings],
-            pages_scanned=len(pages),
+            pages_scanned=pages_scanned,
         )
 
         # SM-SCAN-02: one transaction from here to completed
@@ -176,10 +189,11 @@ class ScanWorker:
         prop = session.execute(
             select(Property).where(Property.id == scan.property_id)
         ).scalar_one()
+        previous_scores = dict(prop.readiness_current or {})
         prop.readiness_current = scores  # INV-RD-02: cache from results only
 
         TimelineRepository.append(session, scan.property_id, "scan_completed", {
-            "scan_id": str(scan.id), "pages_scanned": len(pages),
+            "scan_id": str(scan.id), "pages_scanned": pages_scanned,
             "pages_skipped": skipped, "findings": len(normalization.findings),
             "engine_versions": scan.engine_versions,
             "scoring_version": SCORING_VERSION,
@@ -190,3 +204,15 @@ class ScanWorker:
         })
         scan.profile_snapshot = {**scan.profile_snapshot, "pages_skipped": skipped}
         scan.status = "completed"
+
+        # System 7: automatic moat feeding (fully gated inside)
+        if scan.organization_id is not None:
+            from konformos.moat.feeder import feed_from_scan
+            feed_from_scan(session, scan.organization_id, scan.property_id,
+                           normalization.findings)
+
+        # System 10: notifications + outbound webhooks + drop alert
+        if scan.organization_id is not None:
+            from konformos.notify.service import notify_scan_completed
+            notify_scan_completed(session, scan.organization_id, scan.id,
+                                  scores, previous_scores)

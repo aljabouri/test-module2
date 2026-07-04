@@ -33,7 +33,8 @@
 cd konformos
 pip install -e ".[dev,db,scan]"
 alembic upgrade head                              # يتطلب DATABASE_URL أو Postgres محلياً
-pytest                                            # 101 اختبار (Postgres وaxe يتخطيان تلقائياً إن غابا)
+pytest                                            # 112 اختباراً (Postgres وaxe يتخطيان تلقائياً إن غابا)
+docker compose up                                 # Postgres + API (انظر docker-compose.yml)
 uvicorn --factory konformos.api.main:create_app   # ثم /docs للـOpenAPI
 ```
 
@@ -43,7 +44,8 @@ uvicorn --factory konformos.api.main:create_app   # ثم /docs للـOpenAPI
 - ✅ الشريحة الرأسية الكاملة: HTML → محرّكان (داخلي + axe) → Normalizer → Readiness → Dossier مختوم → تحقق عام، + Golden Corpus + Theme Intelligence استباقي.
 - ✅ طبقة PostgreSQL: المخطط الكامل + التقوية (append-only trigger, RLS, فهرس INV-RP-02) + بذر idempotent — مُختبرة على Postgres 16 حقيقي.
 - ✅ المنصة الكاملة (المرحلة 0 وظيفياً): Auth/RBAC + فحص غير متزامن بزاحف حي + بصمة + فوترة بمستويات + Dossier PDF + تحقق عام + بوابتا القانون والخبير + لوحة v0 — اختبار e2e يشغّل القصة كاملة على Postgres وChromium حقيقيين.
-- ⏭️ المتبقي للإنتاج: Celery/Redis بدل الطابور داخل-العملية (الواجهة نفسها)، TOTP فعلي للـMFA، Legal Watcher المجدول (المصادر مسجّلة والبوابة جاهزة — ينقص الجلب الدوري وsemantic diff)، تكامل Claude API للإصلاحات (الواجهة جاهزة، الحالي template)، Next.js بدل لوحة v0، بيئة نشر (Docker/CI).
+- ✅ طبقة النمو: **TOTP MFA فعلي**، **بيان الوصولية** (§ Erklärung)، **Deploy hooks** (Flow C) + **جدولة دورية** + استرداد الطابور بعد إعادة التشغيل، **مقاعد الوكالة** (BR-CUST-04)، **webhooks صادرة موقَّعة HMAC** + سجل إشعارات، **تغذية الخندق الآلية** بعد كل فحص (ببوابات consent/الثقة/التعقيم)، **Adapters جديدة**: Theme/Plugin (zip بحماية zip-bomb)، Design System (عزل بغلاف نظيف)، PDF (علامات PDF/UA عبر pypdf — الربط بالكتالوج كبيانات)، **محوّل Claude API** للإصلاحات (opus-4-8، هبوط رشيق بلا مفتاح)، **TSA backfill** (العمود الوحيد القابل للتعديل بقرار trigger)، **Rate limiting**، وDockerfile/compose/CI.
+- ⏭️ المتبقي للإنتاج: Celery/Redis بدل الطابور داخل-العملية (الدلالات نفسها — الاسترداد موجود)، الجلب الدوري لمصادر القانون + semantic diff (البوابة كاملة)، Next.js بدل لوحة v0، Object Storage بدل القرص، ومفاتيح فعلية (Stripe/Anthropic/TSA) + مراجعة الكانزلاي.
 - 📌 تباين موثّق بين المحرّكين: axe يقبل placeholder كاسم برمجي للحقل؛ المحرّك الداخلي أصرم عمداً (placeholder ≠ label). القرار: نبقي الأصرم.
 
 كل امتداد يُقاس على معايير القبول AC في `docs/KonformOS_Engineering_Rules_v1.1.md` §9.

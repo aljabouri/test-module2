@@ -113,7 +113,11 @@ def create_app(
     knowledge_store: KnowledgeStore | None = None,
     session_factory=None,
 ) -> FastAPI:
+    import os
+    import time as time_module
+
     from konformos.api.routes_db import ApiError, router as db_router
+    from konformos.api.routes_growth import router as growth_router
 
     app = FastAPI(title="KonformOS API", version="0.1.0")
     app.state.catalog = catalog or load_catalog()
@@ -122,9 +126,19 @@ def create_app(
     app.state.session_factory = session_factory
     app.state.scan_futures = {}
     if session_factory is not None:
+        from konformos.fix.claude_adapter import ClaudeFixGenerator
+        from konformos.scan.scheduler import recover_stuck_scans
         from konformos.scan.worker import ScanWorker
+
         app.state.worker = ScanWorker(session_factory, app.state.catalog)
+        app.state.fix_generator = ClaudeFixGenerator()
+        try:  # queue durability: re-enqueue scans stranded by a restart
+            with session_factory() as session:
+                recover_stuck_scans(session, app.state.worker)
+        except Exception:
+            pass  # fresh DB / migrations not applied yet — nothing to recover
     app.include_router(db_router)
+    app.include_router(growth_router)
 
     @app.exception_handler(ApiError)
     async def _api_error(request: Request, exc: ApiError):
@@ -132,6 +146,28 @@ def create_app(
             status_code=exc.status,
             content=error_body(exc.code, exc.message, exc.details),
         )
+
+    # ── NFR-RATE-01: simple token bucket per caller ─────────────────────
+    rate_buckets: dict[str, list] = {}
+
+    @app.middleware("http")
+    async def rate_limit(request: Request, call_next):
+        limit = int(os.environ.get("KONFORMOS_RATE_LIMIT_PER_MIN", "120"))
+        if limit <= 0 or request.url.path == "/health":
+            return await call_next(request)
+        key = request.headers.get("authorization") \
+            or (request.client.host if request.client else "anon")
+        now = time_module.monotonic()
+        window = rate_buckets.setdefault(key, [])
+        window[:] = [t for t in window if now - t < 60]
+        if len(window) >= limit:
+            return JSONResponse(
+                status_code=429,
+                headers={"Retry-After": "60"},
+                content=error_body("rate_limited", "تجاوزت حد الطلبات — أعد المحاولة لاحقاً."),
+            )
+        window.append(now)
+        return await call_next(request)
 
     @app.exception_handler(ValidationError)
     async def _validation(request: Request, exc: ValidationError):

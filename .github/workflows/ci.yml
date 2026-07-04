@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: konformos
+          POSTGRES_PASSWORD: konformos_dev
+          POSTGRES_DB: konformos
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U konformos"
+          --health-interval 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        working-directory: konformos
+        run: pip install -e ".[db,scan,dev]"
+      - name: Install Chromium for axe/crawler tests
+        run: playwright install --with-deps chromium
+      - name: Validate rules catalog
+        run: |
+          python -c "from konformos.registry.loader import load_catalog; c = load_catalog(); assert len(c.rules) == 55"
+      - name: Run tests
+        working-directory: konformos
+        env:
+          DATABASE_URL: postgresql+psycopg2://konformos:konformos_dev@127.0.0.1:5432/konformos
+        run: pytest -q

@@ -79,7 +79,8 @@
           "definition-list",
           "dlitem",
           "th-has-data-cells",
-          "td-headers-attr"
+          "td-headers-attr",
+          "pdf-tagged"
         ]
       },
       "introduced_in": "WCAG 2.0"
@@ -252,7 +253,10 @@
       "test_logic": {
         "engine": "axe-core",
         "rule_id": "document-title",
-        "manual_fallback": false
+        "manual_fallback": false,
+        "additional_rule_ids": [
+          "pdf-title"
+        ]
       },
       "introduced_in": "WCAG 2.0"
     },
@@ -349,7 +353,8 @@
         "rule_id": "html-has-lang",
         "manual_fallback": false,
         "additional_rule_ids": [
-          "html-lang-valid"
+          "html-lang-valid",
+          "pdf-lang"
         ]
       },
       "introduced_in": "WCAG 2.0"

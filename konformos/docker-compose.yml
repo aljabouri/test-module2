@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: konformos
+      POSTGRES_PASSWORD: konformos_dev
+      POSTGRES_DB: konformos
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U konformos"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://konformos:konformos_dev@db:5432/konformos
+      KONFORMOS_JWT_SECRET: ${KONFORMOS_JWT_SECRET:?set a real secret}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ../docs/rules-catalog:/app/rules-catalog:ro
+      - storage:/data/storage
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
+  storage:

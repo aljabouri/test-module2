@@ -125,3 +125,21 @@ def test_pdf_dossier_sealing(tmp_path, monkeypatch):
     # tampering breaks the seal
     result.pdf_path.write_bytes(raw + b" ")
     assert not verify_pdf_dossier(result.pdf_path, result.dossier_hash)
+
+
+def test_rate_limit_middleware(monkeypatch):
+    # NFR-RATE-01: token bucket returns 429 + Retry-After past the limit
+    monkeypatch.setenv("KONFORMOS_RATE_LIMIT_PER_MIN", "3")
+    from fastapi.testclient import TestClient
+
+    from konformos.api.main import create_app
+    from konformos.registry.loader import load_catalog
+
+    client = TestClient(create_app(load_catalog()))
+    for _ in range(3):
+        assert client.get("/v1/catalog/rule-packs").status_code == 200
+    blocked = client.get("/v1/catalog/rule-packs")
+    assert blocked.status_code == 429
+    assert blocked.headers["Retry-After"] == "60"
+    assert blocked.json()["error"]["code"] == "rate_limited"
+    assert client.get("/health").status_code == 200  # health is exempt
