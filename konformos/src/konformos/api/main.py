@@ -6,24 +6,30 @@ auth/RBAC and async scanning attach here in the next milestones.
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Literal, Optional
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from konformos.core.hashing import seal_event
+from konformos.dossier.sealing import DossierRegistry, build_dossier, verify_dossier
 from konformos.evaluation.scoring import (
+    SCORING_VERSION,
     FindingInput,
     NoPagesScanned,
     compute_readiness,
 )
+from konformos.moat.knowledge import KnowledgeStore
 from konformos.registry.loader import Catalog, load_catalog
 from konformos.registry.resolver import (
     PackNotEffective,
     PackNotFound,
     resolve,
 )
+from konformos.scan.normalizer import normalize
+from konformos.scan.static_engine import ENGINE_NAME, ENGINE_VERSION, scan_html
 from konformos.schemas import ComplianceProfile
 
 
@@ -53,9 +59,63 @@ class EvaluateRequest(BaseModel):
     on_date: date
 
 
-def create_app(catalog: Catalog | None = None) -> FastAPI:
+class PageBody(BaseModel):
+    path: str = Field(min_length=1)
+    html: str = Field(min_length=1)
+
+
+class ScanHtmlRequest(BaseModel):
+    profile: ComplianceProfile
+    pages: list[PageBody] = Field(min_length=1, max_length=50)  # BR-SCAN-01 cap
+    on_date: date
+
+
+class PreviewRequest(BaseModel):
+    platform: str = Field(min_length=1)
+    theme_name: str = Field(min_length=1)
+    theme_version: Optional[str] = None
+    theme_confidence: float = Field(ge=0.0, le=1.0)
+
+
+def _run_scan(catalog: Catalog, body: ScanHtmlRequest):
+    """Shared vertical slice: HTML pages → engine → Normalizer → readiness."""
+    raw = []
+    for page in body.pages:
+        raw.extend(scan_html(page.path, page.html))
+    normalization = normalize(raw, catalog)
+    ruleset = resolve(body.profile, body.on_date, catalog.packs)
+    results = compute_readiness(
+        ruleset,
+        catalog.rules,
+        [f.to_finding_input() for f in normalization.findings],
+        pages_scanned=len(body.pages),
+    )
+    return normalization, results
+
+
+def _readiness_json(results) -> dict:
+    return {
+        label: {
+            "score": r.score,
+            "computed_against_pack": r.computed_against_pack,
+            "scoring_version": r.scoring_version,
+            "rules_evaluated": r.rules_evaluated,
+            "rules_manual_pending": r.rules_manual_pending,
+            "wont_fix_disclosed": r.wont_fix,
+            "gaps": [vars(g) for g in r.gaps],
+        }
+        for label, r in results.items()
+    }
+
+
+def create_app(
+    catalog: Catalog | None = None,
+    knowledge_store: KnowledgeStore | None = None,
+) -> FastAPI:
     app = FastAPI(title="KonformOS API", version="0.1.0")
     app.state.catalog = catalog or load_catalog()
+    app.state.dossiers = DossierRegistry()
+    app.state.knowledge = knowledge_store or KnowledgeStore()
 
     @app.exception_handler(ValidationError)
     async def _validation(request: Request, exc: ValidationError):
@@ -116,20 +176,147 @@ def create_app(catalog: Catalog | None = None) -> FastAPI:
             )
         except NoPagesScanned as exc:
             return JSONResponse(status_code=422, content=error_body("validation_error", str(exc)))
+        return {"readiness": _readiness_json(results)}
+
+    @app.post("/v1/scan-html")
+    def scan_html_endpoint(body: ScanHtmlRequest):
+        """Full vertical slice: pages → internal engine → Normalizer → readiness."""
+        catalog: Catalog = app.state.catalog
+        try:
+            normalization, results = _run_scan(catalog, body)
+        except PackNotEffective as exc:
+            return JSONResponse(status_code=422, content=error_body("pack_not_effective", str(exc)))
+        except PackNotFound as exc:
+            return JSONResponse(status_code=404, content=error_body("not_found", str(exc)))
         return {
-            "readiness": {
-                label: {
-                    "score": r.score,
-                    "computed_against_pack": r.computed_against_pack,
-                    "scoring_version": r.scoring_version,
-                    "rules_evaluated": r.rules_evaluated,
-                    "rules_manual_pending": r.rules_manual_pending,
-                    "wont_fix_disclosed": r.wont_fix,
-                    "gaps": [vars(g) for g in r.gaps],
+            "engine_versions": {ENGINE_NAME: ENGINE_VERSION},  # INV-SC-02
+            "findings": [
+                {
+                    "rule_code": f.rule_code,
+                    "severity": f.severity,
+                    "page": f.page,
+                    "location": f.location,
+                    "evidence": f.evidence,
+                    "status": f.status,
                 }
-                for label, r in results.items()
-            }
+                for f in normalization.findings
+            ],
+            "unmapped_issues": [vars(u) for u in normalization.unmapped],  # INV-FD-01
+            "readiness": _readiness_json(results),
+        }
+
+    @app.post("/v1/dossiers")
+    def create_dossier(body: ScanHtmlRequest):
+        """Scan → readiness → sealed timeline → sealed dossier + public verify URL."""
+        catalog: Catalog = app.state.catalog
+        try:
+            normalization, results = _run_scan(catalog, body)
+        except PackNotEffective as exc:
+            return JSONResponse(status_code=422, content=error_body("pack_not_effective", str(exc)))
+        except PackNotFound as exc:
+            return JSONResponse(status_code=404, content=error_body("not_found", str(exc)))
+
+        scores = {label: r.score for label, r in results.items()}
+        pack_versions = {
+            label: r.computed_against_pack for label, r in results.items()
+        }
+        e1 = seal_event("scan_completed", {
+            "pages_scanned": len(body.pages),
+            "findings": len(normalization.findings),
+            "engine_versions": {ENGINE_NAME: ENGINE_VERSION},
+        }, None)
+        e2 = seal_event("readiness_changed", {"scores": scores}, e1)
+
+        dossier = build_dossier(
+            jurisdictions=list(body.profile.selected_jurisdictions),
+            pack_versions=pack_versions,
+            readiness=scores,
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            events=[e1, e2],
+            scoring_version=SCORING_VERSION,
+            engine_versions={ENGINE_NAME: ENGINE_VERSION},
+        )
+        app.state.dossiers.register(dossier)
+        return {
+            "dossier_hash": dossier.dossier_hash,
+            "verify_url": f"/v1/verify/{dossier.dossier_hash}",
+            "readiness": scores,
+        }
+
+    @app.get("/v1/verify/{dossier_hash}")
+    def verify(dossier_hash: str):
+        """PUBLIC verification — no account, no identity in the response."""
+        dossier = app.state.dossiers.get(dossier_hash)
+        if dossier is None:
+            return JSONResponse(
+                status_code=404,
+                content=error_body("not_found", "لا يوجد توثيق بهذا الختم."),
+            )
+        return {
+            "valid": verify_dossier(dossier.content, dossier_hash),
+            "dossier_hash": dossier_hash,
+            "content": dossier.content,
+        }
+
+    @app.get("/v1/verify/{dossier_hash}/page", response_class=HTMLResponse)
+    def verify_page(dossier_hash: str):
+        dossier = app.state.dossiers.get(dossier_hash)
+        if dossier is None:
+            return HTMLResponse(status_code=404, content=_verify_html(None, dossier_hash))
+        valid = verify_dossier(dossier.content, dossier_hash)
+        return HTMLResponse(content=_verify_html(dossier.content if valid else None, dossier_hash, valid))
+
+    @app.post("/v1/preview")
+    def preview(body: PreviewRequest):
+        """Proactive Theme Intelligence: known defects before any crawl."""
+        store: KnowledgeStore = app.state.knowledge
+        report = store.predict(
+            body.platform, body.theme_name, body.theme_version, body.theme_confidence,
+        )
+        return {
+            "stack_signature": report.stack_signature,
+            "confidence": report.confidence,
+            # BR-FP-01: hedged wording below threshold, no enrichment at all
+            "statement": (
+                "الثقة في كشف الثيم غير كافية — لا استنتاجات مسبقة (فحص كامل مطلوب)."
+                if report.hedged
+                else f"نعرف مسبقاً {report.known_issue_count} نمط عيب موثّقاً لهذا الثيم عبر متاجر متعددة."
+            ),
+            "known_issue_count": report.known_issue_count,
+            "known_issues": report.known_issues,
         }
 
     return app
+
+
+def _verify_html(content: dict | None, dossier_hash: str, valid: bool = False) -> str:
+    """Minimal public verify page. INV-DS-03: assessment wording only."""
+    if content is None:
+        status = "❌ غير موجود أو مكسور الختم — Not found / seal invalid"
+        body = ""
+    else:
+        status = "✅ الختم سليم — Seal verified" if valid else "❌ الختم مكسور"
+        rows = "".join(
+            f"<tr><td>{jurisdiction}</td><td>{content['pack_versions'].get(jurisdiction, '—')}</td>"
+            f"<td>{score}/100</td></tr>"
+            for jurisdiction, score in content["readiness"].items()
+        )
+        body = f"""
+    <p>تاريخ التوليد: {content['generated_at']}</p>
+    <table border="1" cellpadding="6">
+      <tr><th>النطاق</th><th>إصدار المعيار</th><th>Readiness</th></tr>
+      {rows}
+    </table>
+    <p>سلسلة الإثبات: {content['timeline']['length']} حدثاً مختوماً —
+       سليمة: {content['timeline']['chain_valid']}</p>
+    <p><em>{content['disclaimer']}</em></p>"""
+    return f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<title>KonformOS — التحقق من التوثيق</title></head>
+<body style="font-family:sans-serif;max-width:640px;margin:2rem auto">
+  <h1>KonformOS — التحقق العام</h1>
+  <p><strong>{status}</strong></p>
+  <p style="word-break:break-all"><code>{dossier_hash}</code></p>
+  {body}
+</body></html>"""
 
