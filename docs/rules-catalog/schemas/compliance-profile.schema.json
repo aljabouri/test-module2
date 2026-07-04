@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://konformos.dev/schemas/compliance-profile.schema.json",
+  "title": "ComplianceProfile",
+  "description": "اختيار العميل للنطاق القانوني — المحور الثاني للـRouter (KonformOS v1.0 §8.4, v1.1 VAL-PROF-01).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["property_id", "selected_jurisdictions", "pack_binding", "combination_mode"],
+  "properties": {
+    "property_id": { "type": "string", "minLength": 1 },
+    "selected_jurisdictions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["DE", "EU", "US"] }
+    },
+    "pack_binding": { "enum": ["latest", "pinned"] },
+    "pinned_versions": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "DE": { "type": "string", "pattern": "^DE-[0-9]{4}\\.[0-9]+(\\.[0-9]+)?$" },
+        "EU": { "type": "string", "pattern": "^EU-[0-9]{4}\\.[0-9]+(\\.[0-9]+)?$" },
+        "US": { "type": "string", "pattern": "^US-[0-9]{4}\\.[0-9]+(\\.[0-9]+)?$" }
+      }
+    },
+    "combination_mode": { "enum": ["union", "strictest"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "pack_binding": { "const": "latest" } } },
+      "then": { "properties": { "pinned_versions": { "const": null } } }
+    },
+    {
+      "if": { "properties": { "pack_binding": { "const": "pinned" } } },
+      "then": { "properties": { "pinned_versions": { "type": "object" } }, "required": ["pinned_versions"] }
+    }
+  ]
+}

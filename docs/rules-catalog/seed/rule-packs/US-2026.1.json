@@ -1,0 +1,260 @@
+{
+  "jurisdiction": "US",
+  "version": "US-2026.1",
+  "effective_from": "2026-04-24",
+  "status": "draft",
+  "legal_basis": "ADA Title II Rule (28 CFR Part 35, 2024) + Section 508 → WCAG 2.1 AA",
+  "rule_refs": [
+    {
+      "rule_code": "wcag-2.2-1.1.1",
+      "weight": 10,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.2.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.2.2",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.2.3",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.3.1",
+      "weight": 8,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.3.2",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.3.3",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.2",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.1.1",
+      "weight": 10,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.1.2",
+      "weight": 10,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.1.4",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.2.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.2.2",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.3.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.4.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.4.2",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.4.3",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.4.4",
+      "weight": 9,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.5.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.5.2",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.5.3",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.5.4",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.1.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.2.1",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.2.2",
+      "weight": 7,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.3.1",
+      "weight": 8,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.3.2",
+      "weight": 9,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-4.1.2",
+      "weight": 9,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.2.4",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.2.5",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.3.4",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.3.5",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.3",
+      "weight": 8,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.4",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.5",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.10",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.11",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.12",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-1.4.13",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.4.5",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.4.6",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-2.4.7",
+      "weight": 8,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.1.2",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.2.3",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.2.4",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.3.3",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-3.3.4",
+      "weight": 6,
+      "mandatory": true
+    },
+    {
+      "rule_code": "wcag-2.2-4.1.3",
+      "weight": 6,
+      "mandatory": true
+    }
+  ],
+  "report_template_id": "tmpl-us-vpat",
+  "seed": true,
+  "seed_provenance": "بذر أولي من قاعدة DOJ لعنوان ADA II (أبريل 2024، سريان الكيانات الكبيرة 2026-04-24) المرجِعة لـWCAG 2.1 AA. الترجيحات تعكس أنماط التقاضي الأمريكية (alt text، أسماء الروابط، النماذج) — تُوقَّع قبل النشر.",
+  "signed_by": null,
+  "signed_at": null,
+  "source_change_events": []
+}

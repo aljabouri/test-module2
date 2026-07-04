@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://konformos.dev/schemas/rule.schema.json",
+  "title": "Rule",
+  "description": "معيار وصولية ذرّي واحد (KonformOS v1.0 §8.2, v1.1 VAL-RULE-01). قابل لإعادة الاستخدام عبر كل الحزم.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "title", "description", "source_standard", "wcag_level", "automatable", "test_logic"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9.]+)*$",
+      "maxLength": 64,
+      "description": "VAL-ID-01: معرّف فريد عالمي، لا يُعاد استخدامه أبداً (INV-RP-05)"
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "description": { "type": "string", "minLength": 1 },
+    "source_standard": { "type": "string", "minLength": 1 },
+    "wcag_level": { "enum": ["A", "AA", "AAA", null] },
+    "automatable": { "type": "boolean" },
+    "test_logic": {
+      "type": "object",
+      "description": "VAL-RULE-01: automatable=true ⟺ engine+rule_id؛ automatable=false ⟺ manual_only+expert_guidance. لا حالة وسطى."
+    },
+    "introduced_in": {
+      "type": "string",
+      "description": "إصدار المعيار الذي ظهر فيه (مثل WCAG 2.0 / WCAG 2.1 / WCAG 2.2)"
+    },
+    "deprecated": { "type": "boolean", "default": false },
+    "notes": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "automatable": { "const": true } } },
+      "then": { "properties": { "test_logic": { "$ref": "#/$defs/automatedTestLogic" } } }
+    },
+    {
+      "if": { "properties": { "automatable": { "const": false } } },
+      "then": { "properties": { "test_logic": { "$ref": "#/$defs/manualTestLogic" } } }
+    }
+  ],
+  "$defs": {
+    "automatedTestLogic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "rule_id", "manual_fallback"],
+      "properties": {
+        "engine": { "enum": ["axe-core", "pa11y", "lighthouse", "internal"] },
+        "rule_id": { "type": "string", "minLength": 1 },
+        "additional_rule_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "manual_fallback": {
+          "type": "boolean",
+          "description": "true = الكشف الآلي جزئي والتحقق البشري ما زال مطلوباً لتغطية كاملة"
+        }
+      }
+    },
+    "manualTestLogic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manual_only", "expert_guidance"],
+      "properties": {
+        "manual_only": { "const": true },
+        "expert_guidance": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

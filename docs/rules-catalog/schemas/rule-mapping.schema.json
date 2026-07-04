@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://konformos.dev/schemas/rule-mapping.schema.json",
+  "title": "RuleMapping",
+  "description": "الرسم المعرفي القانوني: تكافؤات معيار واحد عبر الأطر (KonformOS v1.0 §8.5). غياب مفتاح = لا مكافئ في ذلك الإطار (مثل قواعد WCAG 2.2 الجديدة قبل تحديث EN 301 549).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rule_code", "equivalences"],
+  "properties": {
+    "rule_code": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9.]+)*$" },
+    "equivalences": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "en_301_549": { "type": "string", "minLength": 1 },
+        "bfsg": { "type": "string", "minLength": 1 },
+        "ada_title_ii": { "type": "string", "minLength": 1 },
+        "section_508": { "type": "string", "minLength": 1 }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}
