@@ -32,7 +32,7 @@ def test_seed_catalog_loads_and_matches_wcag22_counts(catalog):
 def test_health_and_pack_listing(client):
     health = client.get("/health").json()
     assert health["rules"] == 55
-    packs = client.get("/v1/legal/rule-packs", params={"jurisdiction": "DE"}).json()
+    packs = client.get("/v1/catalog/rule-packs", params={"jurisdiction": "DE"}).json()
     assert [p["version"] for p in packs["rule_packs"]] == ["DE-2026.1"]
     assert packs["rule_packs"][0]["rule_count"] == 49
 

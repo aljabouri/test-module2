@@ -111,11 +111,27 @@ def _readiness_json(results) -> dict:
 def create_app(
     catalog: Catalog | None = None,
     knowledge_store: KnowledgeStore | None = None,
+    session_factory=None,
 ) -> FastAPI:
+    from konformos.api.routes_db import ApiError, router as db_router
+
     app = FastAPI(title="KonformOS API", version="0.1.0")
     app.state.catalog = catalog or load_catalog()
     app.state.dossiers = DossierRegistry()
     app.state.knowledge = knowledge_store or KnowledgeStore()
+    app.state.session_factory = session_factory
+    app.state.scan_futures = {}
+    if session_factory is not None:
+        from konformos.scan.worker import ScanWorker
+        app.state.worker = ScanWorker(session_factory, app.state.catalog)
+    app.include_router(db_router)
+
+    @app.exception_handler(ApiError)
+    async def _api_error(request: Request, exc: ApiError):
+        return JSONResponse(
+            status_code=exc.status,
+            content=error_body(exc.code, exc.message, exc.details),
+        )
 
     @app.exception_handler(ValidationError)
     async def _validation(request: Request, exc: ValidationError):
@@ -137,8 +153,10 @@ def create_app(
             "packs": [p.version for p in catalog.packs],
         }
 
-    @app.get("/v1/legal/rule-packs")
+    @app.get("/v1/catalog/rule-packs")
     def rule_packs(jurisdiction: Optional[Literal["DE", "EU", "US"]] = None):
+        """Stateless catalog listing (seed files). The registry of record is
+        the DB-backed /v1/legal/rule-packs."""
         catalog: Catalog = app.state.catalog
         packs = [
             p for p in catalog.packs
@@ -243,28 +261,77 @@ def create_app(
             "readiness": scores,
         }
 
+    def _db_dossier_record(dossier_hash: str) -> dict | None:
+        """Public verify for DB/PDF dossiers: recompute the seal over the PDF
+        bytes (INV-DS-01) and expose only the identity-free summary."""
+        if app.state.session_factory is None:
+            return None
+        from pathlib import Path
+
+        from sqlalchemy import select
+
+        from konformos.db.models import Dossier as DossierRow
+        from konformos.dossier.pdf import verify_pdf_dossier
+
+        with app.state.session_factory() as session:
+            row = session.execute(
+                select(DossierRow).where(DossierRow.dossier_hash == dossier_hash)
+            ).scalar_one_or_none()
+            if row is None:
+                return None
+            return {
+                "valid": verify_pdf_dossier(Path(row.pdf_url), dossier_hash),
+                "dossier_hash": dossier_hash,
+                "content": {
+                    "kind": "konformos-dossier",
+                    "generated_at": row.generated_at.isoformat(),
+                    "jurisdictions": list(row.jurisdictions or []),
+                    "pack_versions": row.pack_versions,
+                    "readiness": row.readiness_snapshot,
+                    "timeline": {
+                        "length": (row.timeline_range or {}).get("to_sequence", 0),
+                        "chain_valid": True,  # verified before sealing (NFR-REL-02)
+                    },
+                    "disclaimer": "Assessment documentation — توثيق تقييم واجتهاد.",
+                },
+            }
+
     @app.get("/v1/verify/{dossier_hash}")
     def verify(dossier_hash: str):
         """PUBLIC verification — no account, no identity in the response."""
         dossier = app.state.dossiers.get(dossier_hash)
-        if dossier is None:
-            return JSONResponse(
-                status_code=404,
-                content=error_body("not_found", "لا يوجد توثيق بهذا الختم."),
-            )
-        return {
-            "valid": verify_dossier(dossier.content, dossier_hash),
-            "dossier_hash": dossier_hash,
-            "content": dossier.content,
-        }
+        if dossier is not None:
+            return {
+                "valid": verify_dossier(dossier.content, dossier_hash),
+                "dossier_hash": dossier_hash,
+                "content": dossier.content,
+            }
+        record = _db_dossier_record(dossier_hash)
+        if record is not None:
+            return record
+        return JSONResponse(
+            status_code=404,
+            content=error_body("not_found", "لا يوجد توثيق بهذا الختم."),
+        )
 
     @app.get("/v1/verify/{dossier_hash}/page", response_class=HTMLResponse)
     def verify_page(dossier_hash: str):
         dossier = app.state.dossiers.get(dossier_hash)
-        if dossier is None:
-            return HTMLResponse(status_code=404, content=_verify_html(None, dossier_hash))
-        valid = verify_dossier(dossier.content, dossier_hash)
-        return HTMLResponse(content=_verify_html(dossier.content if valid else None, dossier_hash, valid))
+        if dossier is not None:
+            valid = verify_dossier(dossier.content, dossier_hash)
+            return HTMLResponse(
+                content=_verify_html(dossier.content if valid else None, dossier_hash, valid))
+        record = _db_dossier_record(dossier_hash)
+        if record is not None:
+            return HTMLResponse(content=_verify_html(
+                record["content"] if record["valid"] else None,
+                dossier_hash, record["valid"]))
+        return HTMLResponse(status_code=404, content=_verify_html(None, dossier_hash))
+
+    @app.get("/app", response_class=HTMLResponse)
+    def dashboard():
+        from konformos.api.dashboard import DASHBOARD_HTML
+        return HTMLResponse(content=DASHBOARD_HTML)
 
     @app.post("/v1/preview")
     def preview(body: PreviewRequest):

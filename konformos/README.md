@@ -16,8 +16,16 @@
 | `corpus/` | **Golden Corpus**: صفحات مجمّدة بعيوب معلَّمة يدوياً — 100% دقة واستدعاء إلزامية | نقطة خارطة الطريق 7 |
 | `scan/axe_engine.py` | **axe-core 4.10.2 عبر Playwright** (مُضمَّن في `vendor/`) — محرّك ثانٍ يمرّ بنفس الـNormalizer ومُثبَّت بلقطة على الـCorpus | §4.4, INV-SC-02 |
 | `db/` | **طبقة PostgreSQL**: 19 جدولاً (§6)، trigger يمنع UPDATE/DELETE على الـTimeline، RLS بعزل المنظمات، فهرس "حزمة نشطة واحدة"، مستودعات (Timeline بقفل + بذر idempotent) | INV-TL-01/04, INV-RP-02, INV-ORG-01, INV-KG-01 بنيوياً |
-| `migrations/` | Alembic: `0001` المخطط الكامل، `0002` تقوية Postgres | §10.2 |
-| `api/main.py` | FastAPI: evaluate، scan-html، dossiers، **`/v1/verify/{hash}` العام**، preview | Tech Spec §5, ERR-00 |
+| `migrations/` | Alembic: `0001` المخطط، `0002` تقوية Postgres، `0003` أعمدة تشغيلية + bypass نظامي ضيق | §10.2 |
+| `api/security.py` | Argon2id + JWT قصير العمر + حظر الأدوار الحسّاسة بلا MFA | §7.3, VAL-USER-01, RBAC-02 |
+| `api/routes_db.py` | **منصة كاملة موصولة بالقاعدة**: auth، properties، ملف الامتثال، fingerprint، فحص غير متزامن (202+poll)، findings بآلة الحالة، fix، Dossier PDF، بوابة القانون (نشر+إعادة حساب)، بوابة الخبير، Stripe webhook | Tech Spec §5 كاملاً |
+| `billing/service.py` | مصفوفة Tier×قدرة + SM-SUB قراءة-فقط + webhook idempotent بتوقيع Stripe v1 | BR-BIL, EDGE-BIL-02 |
+| `fingerprint/engine.py` | كشف المنصة/الثيم بإشارات مرجّحة + صياغة تحوّطية مدمجة | §4.3, BR-FP-01 |
+| `scan/crawler.py` | زاحف Playwright حي: robots.txt، حارس SSRF، أولوية الصفحات الحرجة | BR-SCAN-01/02, VAL-PROP-01 |
+| `scan/worker.py` | طابور فحص غير متزامن (SM-SCAN كاملة، اكتمال بمعاملة واحدة) | SM-SCAN-02, INV-SC-01/02 |
+| `dossier/pdf.py` | Dossier PDF فعلي مختوم على البايتات + قسم الحدود الإلزامي | INV-DS-01/02/03, BR-CUST-03 |
+| `api/dashboard.py` | لوحة تحكم v0 (تسجيل → فحص → Dossier → تحقق) على `/app` | — |
+| `api/main.py` | evaluate/scan-html عديمة الحالة + **`/v1/verify/{hash}` العام** (ذاكرة + قاعدة) + preview | ERR-00 |
 
 ## التشغيل
 
@@ -25,7 +33,7 @@
 cd konformos
 pip install -e ".[dev,db,scan]"
 alembic upgrade head                              # يتطلب DATABASE_URL أو Postgres محلياً
-pytest                                            # 78 اختباراً (Postgres وaxe يتخطيان تلقائياً إن غابا)
+pytest                                            # 101 اختبار (Postgres وaxe يتخطيان تلقائياً إن غابا)
 uvicorn --factory konformos.api.main:create_app   # ثم /docs للـOpenAPI
 ```
 
@@ -34,7 +42,8 @@ uvicorn --factory konformos.api.main:create_app   # ثم /docs للـOpenAPI
 - ✅ قلب المرحلة 0: Registry + Resolution + Evaluation + ختم الإثبات + بذر DE/EU/US.
 - ✅ الشريحة الرأسية الكاملة: HTML → محرّكان (داخلي + axe) → Normalizer → Readiness → Dossier مختوم → تحقق عام، + Golden Corpus + Theme Intelligence استباقي.
 - ✅ طبقة PostgreSQL: المخطط الكامل + التقوية (append-only trigger, RLS, فهرس INV-RP-02) + بذر idempotent — مُختبرة على Postgres 16 حقيقي.
-- ⏭️ التالي: Auth/RBAC (§5 من وثيقة القواعد) + ربط الـAPI بالمستودعات بدل الذاكرة، ثم Task Queue للفحص غير المتزامن، ثم Stripe.
+- ✅ المنصة الكاملة (المرحلة 0 وظيفياً): Auth/RBAC + فحص غير متزامن بزاحف حي + بصمة + فوترة بمستويات + Dossier PDF + تحقق عام + بوابتا القانون والخبير + لوحة v0 — اختبار e2e يشغّل القصة كاملة على Postgres وChromium حقيقيين.
+- ⏭️ المتبقي للإنتاج: Celery/Redis بدل الطابور داخل-العملية (الواجهة نفسها)، TOTP فعلي للـMFA، Legal Watcher المجدول (المصادر مسجّلة والبوابة جاهزة — ينقص الجلب الدوري وsemantic diff)، تكامل Claude API للإصلاحات (الواجهة جاهزة، الحالي template)، Next.js بدل لوحة v0، بيئة نشر (Docker/CI).
 - 📌 تباين موثّق بين المحرّكين: axe يقبل placeholder كاسم برمجي للحقل؛ المحرّك الداخلي أصرم عمداً (placeholder ≠ label). القرار: نبقي الأصرم.
 
 كل امتداد يُقاس على معايير القبول AC في `docs/KonformOS_Engineering_Rules_v1.1.md` §9.

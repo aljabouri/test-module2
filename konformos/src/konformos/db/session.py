@@ -29,3 +29,12 @@ def set_org_context(session: Session, organization_id: uuid.UUID | None) -> None
         text("SELECT set_config('app.current_org', :val, false)"),
         {"val": str(organization_id) if organization_id else ""},
     )
+    session.execute(text("SELECT set_config('app.rls_bypass', '', false)"))
+
+
+def set_system_context(session: Session) -> None:
+    """Named narrow bypass for system flows with no org yet (login lookup,
+    Stripe webhook). Applies ONLY to users/subscriptions — properties has no
+    bypass by design (migration 0003)."""
+    session.execute(text("SELECT set_config('app.current_org', '', false)"))
+    session.execute(text("SELECT set_config('app.rls_bypass', 'system', false)"))

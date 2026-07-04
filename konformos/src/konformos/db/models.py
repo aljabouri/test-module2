@@ -182,6 +182,8 @@ class Scan(TimestampMixin, Base):
     __tablename__ = "scans"
     id: Mapped[uuid.UUID] = uuid_pk()
     property_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("properties.id"))
+    # denormalized org for worker/expert RLS context (migration 0003)
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     trigger: Mapped[str] = mapped_column(Text)
     input_type: Mapped[str] = mapped_column(Text)
     fingerprint_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
