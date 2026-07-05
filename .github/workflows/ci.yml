@@ -12,16 +12,25 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: konformos
-          POSTGRES_PASSWORD: konformos_dev
-          POSTGRES_DB: konformos
+          # Bootstrap superuser only. The app role is created NOSUPERUSER
+          # below — the postgres image makes POSTGRES_USER a SUPERUSER, and
+          # superusers silently bypass RLS (INV-ORG-01 would be untested).
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U konformos"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      - name: Create non-superuser app role (RLS must actually apply)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE konformos LOGIN PASSWORD 'konformos_dev' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;" \
+            -c "CREATE DATABASE konformos OWNER konformos;"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

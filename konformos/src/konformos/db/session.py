@@ -38,3 +38,18 @@ def set_system_context(session: Session) -> None:
     bypass by design (migration 0003)."""
     session.execute(text("SELECT set_config('app.current_org', '', false)"))
     session.execute(text("SELECT set_config('app.rls_bypass', 'system', false)"))
+
+
+def rls_enforceable(bind) -> bool | None:
+    """INV-ORG-01 guard: RLS NEVER applies to superusers or BYPASSRLS roles —
+    a platform connected that way runs with org isolation silently OFF.
+    Returns True/False, or None when it cannot be determined (non-PG bind)."""
+    try:
+        with bind.connect() as conn:
+            bypasses = conn.execute(text(
+                "SELECT rolsuper OR rolbypassrls FROM pg_roles"
+                " WHERE rolname = current_user"
+            )).scalar()
+        return not bool(bypasses)
+    except Exception:
+        return None

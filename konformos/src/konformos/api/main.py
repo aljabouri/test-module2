@@ -132,7 +132,31 @@ def create_app(
         except Exception:
             session_factory = None  # /v1 routes return 503 until DB is up
 
+    # INV-ORG-01 startup guard: superuser/BYPASSRLS connections silently
+    # disable Row-Level Security. Refuse to start under KONFORMOS_REQUIRE_RLS;
+    # otherwise log CRITICAL and surface the state in /health.
+    rls_ok: bool | None = None
+    if session_factory is not None:
+        try:
+            from konformos.db.session import rls_enforceable
+            with session_factory() as _probe:
+                rls_ok = rls_enforceable(_probe.get_bind())
+        except Exception:
+            rls_ok = None
+        if rls_ok is False:
+            _msg = (
+                "INV-ORG-01: the database role is SUPERUSER/BYPASSRLS — "
+                "Row-Level Security does NOT apply and org isolation is OFF. "
+                "Connect as a NOSUPERUSER role that owns the database "
+                "(fresh docker volume: `docker compose down -v` then up)."
+            )
+            if os.environ.get("KONFORMOS_REQUIRE_RLS"):
+                raise RuntimeError(_msg)
+            import logging
+            logging.getLogger("konformos").critical(_msg)
+
     app = FastAPI(title="KonformOS API", version="0.1.0")
+    app.state.rls_enforceable = rls_ok
     app.state.catalog = catalog or load_catalog()
     app.state.dossiers = DossierRegistry()
     app.state.knowledge = knowledge_store or KnowledgeStore()
@@ -200,6 +224,8 @@ def create_app(
             "status": "ok",
             "rules": len(catalog.rules),
             "packs": [p.version for p in catalog.packs],
+            "db": app.state.session_factory is not None,
+            "rls_enforceable": app.state.rls_enforceable,
         }
 
     @app.get("/v1/catalog/rule-packs")

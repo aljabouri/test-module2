@@ -2,13 +2,16 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: konformos
-      POSTGRES_PASSWORD: konformos_dev
-      POSTGRES_DB: konformos
+      # Bootstrap superuser only — the app connects as the NOSUPERUSER role
+      # `konformos` created by docker/initdb (superusers bypass RLS, which
+      # would silently disable org isolation — INV-ORG-01).
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_bootstrap
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U konformos"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       retries: 10
 
@@ -19,6 +22,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg2://konformos:konformos_dev@db:5432/konformos
+      KONFORMOS_REQUIRE_RLS: "1"  # refuse to start if the DB role bypasses RLS
       KONFORMOS_JWT_SECRET: ${KONFORMOS_JWT_SECRET:?set a real secret}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}

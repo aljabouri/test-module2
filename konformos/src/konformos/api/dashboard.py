@@ -284,7 +284,7 @@ function renderShell(){
   app.innerHTML="";
   app.appendChild($(`<div>
     <div class="topbar">
-      <div class="brand">🛡️ KonformOS <span class="v">SaaS</span></div>
+      <div class="brand" title="لوحة التحكم">🛡️ KonformOS <span class="v">SaaS</span></div>
       <div style="flex:1"></div>
       <span class="pill">${esc((S.org&&S.org.name)||"")}${sub?` · <span style="color:var(--accent)">${esc(sub.tier)}</span>`:""}</span>
       <button class="btn ghost sm" id="theme-btn" title="المظهر">🌓</button>
