@@ -119,6 +119,19 @@ def create_app(
     from konformos.api.routes_db import ApiError, router as db_router
     from konformos.api.routes_growth import router as growth_router
 
+    # Auto-wire the DB when launched from uvicorn (no factory passed) and a
+    # database is reachable — so `create_app` used as an ASGI factory is fully
+    # functional, not just the in-tests wiring.
+    if session_factory is None:
+        try:
+            from konformos.db.session import make_engine, make_session_factory
+            engine = make_engine()
+            with engine.connect():  # fail fast if unreachable
+                pass
+            session_factory = make_session_factory(engine)
+        except Exception:
+            session_factory = None  # /v1 routes return 503 until DB is up
+
     app = FastAPI(title="KonformOS API", version="0.1.0")
     app.state.catalog = catalog or load_catalog()
     app.state.dossiers = DossierRegistry()
