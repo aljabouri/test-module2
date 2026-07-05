@@ -10,7 +10,7 @@ COPY src ./src
 COPY migrations ./migrations
 COPY corpus ./corpus
 
-RUN pip install --no-cache-dir ".[db,scan]" \
+RUN pip install --no-cache-dir ".[db,scan]" "uvicorn>=0.29" \
     && playwright install --with-deps chromium
 
 # The catalog is data (Rules-as-Data) — mount or bake docs/rules-catalog
