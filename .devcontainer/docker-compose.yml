@@ -1,0 +1,37 @@
+# Dev Container stack for GitHub Codespaces.
+# `app` is the editable workspace (Python 3.11); `db` is Postgres 16 with the
+# NOSUPERUSER `konformos` role seeded by konformos/docker/initdb so that
+# Row-Level Security actually applies (INV-ORG-01).
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/python:3.11
+    volumes:
+      - ..:/workspaces:cached
+    command: sleep infinity
+    environment:
+      DATABASE_URL: postgresql+psycopg2://konformos:konformos_dev@db:5432/konformos
+      KONFORMOS_REQUIRE_RLS: "1"
+      KONFORMOS_JWT_SECRET: dev-insecure-secret-change-me
+      PLAYWRIGHT_BROWSERS_PATH: /home/vscode/pw-browsers
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      # Bootstrap superuser only — the app connects as the NOSUPERUSER role
+      # `konformos` created by docker/initdb (superusers bypass RLS).
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_bootstrap
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../konformos/docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

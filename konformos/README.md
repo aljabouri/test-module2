@@ -40,6 +40,20 @@ docker compose up                                 # Postgres + API (انظر doc
 uvicorn --factory konformos.api.main:create_app   # ثم /docs للـOpenAPI
 ```
 
+### التشغيل من GitHub Codespaces
+
+المستودع يحتوي على إعداد Dev Container جاهز في `.devcontainer/`:
+
+1. من صفحة المستودع على GitHub: **Code ▸ Codespaces ▸ Create codespace**.
+2. يُبنى الحاوية تلقائياً: Python 3.11 + Postgres 16 (بدور `konformos` من نوع NOSUPERUSER كي تُطبَّق RLS)، ثم `post-create.sh` يثبّت الحزمة والـChromium ويشغّل الهجرات ويتحقق من الكتالوج (55 قاعدة).
+3. بعد اكتمال الإعداد، شغّل الـAPI من الطرفية:
+   ```bash
+   cd konformos
+   uvicorn --factory konformos.api.main:create_app --host 0.0.0.0 --port 8000
+   ```
+4. Codespaces يمرّر المنفذ **8000** تلقائياً — افتح `/docs` (OpenAPI) و`/app` (واجهة العميل) و`/admin` (اللوحة الإدارية).
+5. الاختبارات: `cd konformos && pytest -q`.
+
 ## ما بُني وما لم يُبنَ بعد (بترتيب خطة v1.0 §11)
 
 - ✅ قلب المرحلة 0: Registry + Resolution + Evaluation + ختم الإثبات + بذر DE/EU/US.
