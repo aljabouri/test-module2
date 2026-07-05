@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Bootstrap superuser only. The app role is created NOSUPERUSER
+          # below — the postgres image makes POSTGRES_USER a SUPERUSER, and
+          # superusers silently bypass RLS (INV-ORG-01 would be untested).
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create non-superuser app role (RLS must actually apply)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h 127.0.0.1 -U postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE konformos LOGIN PASSWORD 'konformos_dev' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;" \
+            -c "CREATE DATABASE konformos OWNER konformos;"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package
+        working-directory: konformos
+        run: pip install -e ".[db,scan,dev]"
+      - name: Install Chromium for axe/crawler tests
+        run: playwright install --with-deps chromium
+      - name: Validate rules catalog
+        run: |
+          python -c "from konformos.registry.loader import load_catalog; c = load_catalog(); assert len(c.rules) == 55"
+      - name: Run tests
+        working-directory: konformos
+        env:
+          DATABASE_URL: postgresql+psycopg2://konformos:konformos_dev@127.0.0.1:5432/konformos
+        run: pytest -q

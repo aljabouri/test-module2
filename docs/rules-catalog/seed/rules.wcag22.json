@@ -1,0 +1,786 @@
+{
+  "catalog": "KonformOS WCAG 2.2 Rule Catalog (Level A + AA)",
+  "schema": "../schemas/rule.schema.json",
+  "notes": "55 معياراً (31 A + 24 AA). معيار 4.1.1 Parsing محذوف في WCAG 2.2 وغائب عمداً (INV-RP-05: لو وُجد تاريخياً لبقي في السجل). الترميز موحّد على ترقيم WCAG 2.2 حتى للحزم المبنية على WCAG 2.1 — المعايير المشتركة متطابقة المحتوى.",
+  "rules": [
+    {
+      "code": "wcag-2.2-1.1.1",
+      "title": "Non-text Content",
+      "description": "كل محتوى غير نصي (صور، أيقونات، أزرار صورية) له بديل نصي يؤدي الغرض ذاته.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "image-alt",
+        "manual_fallback": true,
+        "additional_rule_ids": [
+          "input-image-alt",
+          "area-alt",
+          "object-alt",
+          "svg-img-alt"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.2.1",
+      "title": "Audio-only and Video-only (Prerecorded)",
+      "description": "الوسائط المسجلة الصوتية-فقط أو المرئية-فقط لها بديل نصي أو مسار مكافئ.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "حدد كل الوسائط المسجلة وتحقق يدوياً من وجود بديل نصي كامل أو مسار صوتي مكافئ."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.2.2",
+      "title": "Captions (Prerecorded)",
+      "description": "كل فيديو مسجل بصوت له ترجمات نصية متزامنة (Captions).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "video-caption",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.2.3",
+      "title": "Audio Description or Media Alternative (Prerecorded)",
+      "description": "الفيديو المسجل له وصف صوتي أو بديل نصي كامل للمحتوى المرئي.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "شغّل كل فيديو وتحقق من وجود وصف صوتي أو نص بديل يغطي المعلومات المرئية الجوهرية."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.3.1",
+      "title": "Info and Relationships",
+      "description": "البنية والعلاقات (عناوين، قوائم، جداول، حقول) معبَّر عنها برمجياً لا بصرياً فقط.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "list",
+        "manual_fallback": true,
+        "additional_rule_ids": [
+          "listitem",
+          "definition-list",
+          "dlitem",
+          "th-has-data-cells",
+          "td-headers-attr",
+          "pdf-tagged"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.3.2",
+      "title": "Meaningful Sequence",
+      "description": "ترتيب قراءة المحتوى برمجياً يحفظ المعنى.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "اقرأ الصفحة بقارئ شاشة وتحقق أن الترتيب المنطقي محفوظ (خاصة التخطيطات متعددة الأعمدة)."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.3.3",
+      "title": "Sensory Characteristics",
+      "description": "التعليمات لا تعتمد حصراً على الشكل أو اللون أو الموقع أو الصوت.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "افحص كل التعليمات في الواجهة (\"اضغط الزر الأخضر يميناً\") وتأكد من وجود إشارة غير حسية."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.4.1",
+      "title": "Use of Color",
+      "description": "اللون ليس الوسيلة الوحيدة لنقل معلومة أو تمييز عنصر.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "link-in-text-block",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.4.2",
+      "title": "Audio Control",
+      "description": "أي صوت يعمل تلقائياً أكثر من 3 ثوانٍ يمكن إيقافه أو التحكم بمستواه.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "no-autoplay-audio",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.1.1",
+      "title": "Keyboard",
+      "description": "كل الوظائف قابلة للتشغيل بلوحة المفاتيح وحدها.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "scrollable-region-focusable",
+        "manual_fallback": true,
+        "additional_rule_ids": [
+          "frame-focusable-content"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.1.2",
+      "title": "No Keyboard Trap",
+      "description": "التركيز لا يُحتجز في أي مكوّن — الدخول والخروج ممكنان بلوحة المفاتيح.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "تنقّل بالكامل بـTab/Shift+Tab عبر كل المكوّنات التفاعلية (خاصة النوافذ المنبثقة والودجات) وتأكد من عدم الاحتجاز."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.1.4",
+      "title": "Character Key Shortcuts",
+      "description": "اختصارات المحرف الواحد يمكن إيقافها أو إعادة تعيينها أو تعمل عند التركيز فقط.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "استعرض اختصارات لوحة المفاتيح وتحقق من قابلية الإيقاف/إعادة التعيين."
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-2.2.1",
+      "title": "Timing Adjustable",
+      "description": "كل مهلة زمنية يمكن إيقافها أو تعديلها أو تمديدها.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "meta-refresh",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.2.2",
+      "title": "Pause, Stop, Hide",
+      "description": "المحتوى المتحرك/الوامض/المتمرر تلقائياً أكثر من 5 ثوانٍ قابل للإيقاف.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "marquee",
+        "manual_fallback": true,
+        "additional_rule_ids": [
+          "blink"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.3.1",
+      "title": "Three Flashes or Below Threshold",
+      "description": "لا محتوى يومض أكثر من ثلاث مرات في الثانية فوق عتبات الوميض.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "افحص أي محتوى وامض بأداة تحليل الوميض (مثل PEAT) أو استبعده."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.4.1",
+      "title": "Bypass Blocks",
+      "description": "آلية لتخطي الكتل المتكررة (روابط تخطٍ، landmarks).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "bypass",
+        "manual_fallback": true,
+        "additional_rule_ids": [
+          "region"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.4.2",
+      "title": "Page Titled",
+      "description": "لكل صفحة عنوان <title> يصف موضوعها أو غرضها.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "document-title",
+        "manual_fallback": false,
+        "additional_rule_ids": [
+          "pdf-title"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.4.3",
+      "title": "Focus Order",
+      "description": "ترتيب التركيز يحفظ المعنى وقابلية التشغيل (لا tabindex موجب يشوّه التسلسل).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "tabindex",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.4.4",
+      "title": "Link Purpose (In Context)",
+      "description": "غرض كل رابط مفهوم من نصه أو سياقه البرمجي المباشر.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "link-name",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.5.1",
+      "title": "Pointer Gestures",
+      "description": "الوظائف التي تتطلب إيماءات متعددة النقاط أو مسارية لها بديل بنقطة واحدة.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "اختبر كل إيماءة (سحب بإصبعين، رسم مسار) وتحقق من بديل بنقرة/نقرات بسيطة."
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-2.5.2",
+      "title": "Pointer Cancellation",
+      "description": "الوظائف بنقطة واحدة لا تكتمل على down-event وحده أو قابلة للإلغاء/التراجع.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "اختبر الضغط ثم السحب خارج العنصر قبل الإفلات — يجب ألا يُنفَّذ الفعل."
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-2.5.3",
+      "title": "Label in Name",
+      "description": "الاسم البرمجي (Accessible Name) يتضمن النص الظاهر بصرياً على العنصر.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "label-content-name-mismatch",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-2.5.4",
+      "title": "Motion Actuation",
+      "description": "الوظائف المُشغَّلة بحركة الجهاز لها بديل واجهة ويمكن تعطيل تشغيل الحركة.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "حدد أي وظيفة تعمل بهزّ/إمالة الجهاز وتحقق من بديل وقابلية التعطيل."
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-3.1.1",
+      "title": "Language of Page",
+      "description": "اللغة الافتراضية للصفحة محددة برمجياً (سمة lang صالحة).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "html-has-lang",
+        "manual_fallback": false,
+        "additional_rule_ids": [
+          "html-lang-valid",
+          "pdf-lang"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.2.1",
+      "title": "On Focus",
+      "description": "استقبال عنصر للتركيز لا يسبب تغيير سياق (فتح نافذة، نقل تركيز، إرسال نموذج).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "تنقّل بالتركيز عبر كل العناصر وراقب أي تغيير سياق تلقائي."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.2.2",
+      "title": "On Input",
+      "description": "تغيير قيمة حقل لا يسبب تغيير سياق تلقائياً ما لم يُخبَر المستخدم مسبقاً.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "غيّر قيم الحقول والقوائم المنسدلة وراقب الإرسال/الانتقال التلقائي."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.2.6",
+      "title": "Consistent Help",
+      "description": "آليات المساعدة (تواصل، دردشة، أسئلة شائعة) تظهر بنفس الترتيب النسبي عبر الصفحات.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "قارن موضع آليات المساعدة عبر مجموعة الصفحات وتحقق من الاتساق."
+      },
+      "introduced_in": "WCAG 2.2"
+    },
+    {
+      "code": "wcag-2.2-3.3.1",
+      "title": "Error Identification",
+      "description": "الخطأ في الإدخال يُحدَّد ويُوصَف للمستخدم نصياً.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "أرسل النماذج ببيانات خاطئة وتحقق أن الأخطاء تُعرَّف نصياً وتُربط بحقولها."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.3.2",
+      "title": "Labels or Instructions",
+      "description": "الحقول لها وسوم (Labels) أو تعليمات كافية.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "label",
+        "manual_fallback": true,
+        "additional_rule_ids": [
+          "select-name",
+          "form-field-multiple-labels"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.3.7",
+      "title": "Redundant Entry",
+      "description": "المعلومات المُدخلة سابقاً في نفس العملية تُملأ تلقائياً أو تكون قابلة للاختيار.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "نفّذ عملية متعددة الخطوات (مثل الدفع) وتحقق من عدم طلب نفس المعلومة مرتين يدوياً."
+      },
+      "introduced_in": "WCAG 2.2"
+    },
+    {
+      "code": "wcag-2.2-4.1.2",
+      "title": "Name, Role, Value",
+      "description": "لكل مكوّن واجهة اسم ودور برمجيان، وقيمه وحالاته قابلة للضبط والقراءة برمجياً.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "A",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "aria-valid-attr-value",
+        "manual_fallback": true,
+        "additional_rule_ids": [
+          "button-name",
+          "aria-roles",
+          "aria-required-attr",
+          "aria-allowed-attr",
+          "nested-interactive"
+        ]
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.2.4",
+      "title": "Captions (Live)",
+      "description": "البث الصوتي الحي له ترجمات نصية متزامنة.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "تحقق من وجود ترجمات للبث الحي إن وُجد."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.2.5",
+      "title": "Audio Description (Prerecorded)",
+      "description": "الفيديو المسجل له وصف صوتي للمحتوى المرئي.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "شغّل الفيديوهات وتحقق من مسار وصف صوتي يغطي المعلومات المرئية."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.3.4",
+      "title": "Orientation",
+      "description": "المحتوى لا يُقيَّد باتجاه عرض واحد (عمودي/أفقي) ما لم يكن جوهرياً.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "css-orientation-lock",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-1.3.5",
+      "title": "Identify Input Purpose",
+      "description": "غرض حقول الإدخال الشائعة (اسم، بريد، عنوان) محدد برمجياً (autocomplete).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "autocomplete-valid",
+        "manual_fallback": false
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-1.4.3",
+      "title": "Contrast (Minimum)",
+      "description": "نسبة تباين النص العادي 4.5:1 على الأقل، والنص الكبير 3:1.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "color-contrast",
+        "manual_fallback": false
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.4.4",
+      "title": "Resize Text",
+      "description": "النص قابل للتكبير حتى 200% دون فقدان محتوى أو وظيفة.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "meta-viewport",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.4.5",
+      "title": "Images of Text",
+      "description": "النص الحقيقي بدلاً من صور النص حيثما أمكن تقنياً.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "افحص الصور بصرياً واكشف صور النص القابلة للاستبدال بنص حقيقي."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-1.4.10",
+      "title": "Reflow",
+      "description": "المحتوى يُعاد تدفقه عند عرض 320px دون تمرير ثنائي الاتجاه.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "اعرض الصفحات على عرض 320px (تكبير 400%) وتحقق من عدم الحاجة لتمرير أفقي."
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-1.4.11",
+      "title": "Non-text Contrast",
+      "description": "المكوّنات التفاعلية والرسوم الدلالية بتباين 3:1 على الأقل مع محيطها.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "افحص حدود الحقول والأزرار والأيقونات الدلالية بأداة قياس تباين."
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-1.4.12",
+      "title": "Text Spacing",
+      "description": "لا فقدان محتوى عند رفع تباعد الأسطر/الفقرات/الكلمات/المحارف للقيم المعيارية.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "avoid-inline-spacing",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-1.4.13",
+      "title": "Content on Hover or Focus",
+      "description": "المحتوى الظاهر عند التحويم/التركيز قابل للإغلاق وثابت وقابل للتحويم عليه.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "اختبر كل tooltip/قائمة منبثقة: إغلاق بـEsc، بقاء عند تحويم المؤشر عليها، عدم اختفاء تلقائي."
+      },
+      "introduced_in": "WCAG 2.1"
+    },
+    {
+      "code": "wcag-2.2-2.4.5",
+      "title": "Multiple Ways",
+      "description": "أكثر من طريقة للوصول لأي صفحة (بحث، خريطة موقع، تنقّل).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "تحقق من وجود طريقتين على الأقل (مثل بحث + قائمة تنقّل) للوصول إلى الصفحات."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.4.6",
+      "title": "Headings and Labels",
+      "description": "العناوين والوسوم تصف الموضوع أو الغرض.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "راجع عناوين الأقسام ووسوم الحقول وتحقق من وصفيتها (لا \"قسم 1\"، \"حقل\")."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.4.7",
+      "title": "Focus Visible",
+      "description": "مؤشر التركيز مرئي دائماً عند التنقّل بلوحة المفاتيح.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "تنقّل بـTab عبر الصفحة كاملة وتحقق من مؤشر تركيز مرئي على كل عنصر (لا outline:none بلا بديل)."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-2.4.11",
+      "title": "Focus Not Obscured (Minimum)",
+      "description": "العنصر المُركَّز عليه غير محجوب كلياً بمحتوى آخر (شرائط لاصقة، بانرات كوكيز).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "تنقّل بالتركيز مع وجود العناصر اللاصقة (headers/banners) وتحقق أن المُركَّز عليه مرئي جزئياً على الأقل."
+      },
+      "introduced_in": "WCAG 2.2"
+    },
+    {
+      "code": "wcag-2.2-2.5.7",
+      "title": "Dragging Movements",
+      "description": "وظائف السحب (Drag) لها بديل بنقطة واحدة دون سحب.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "حدد كل وظيفة سحب (إعادة ترتيب، شرائح تمرير) وتحقق من بديل بنقرات بسيطة."
+      },
+      "introduced_in": "WCAG 2.2"
+    },
+    {
+      "code": "wcag-2.2-2.5.8",
+      "title": "Target Size (Minimum)",
+      "description": "أهداف النقر 24×24 CSS px على الأقل أو بمسافة كافية عن الأهداف المجاورة.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "target-size",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.2"
+    },
+    {
+      "code": "wcag-2.2-3.1.2",
+      "title": "Language of Parts",
+      "description": "المقاطع بلغة مختلفة عن لغة الصفحة محددة برمجياً بسمة lang.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": true,
+      "test_logic": {
+        "engine": "axe-core",
+        "rule_id": "valid-lang",
+        "manual_fallback": true
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.2.3",
+      "title": "Consistent Navigation",
+      "description": "آليات التنقّل المتكررة بنفس الترتيب النسبي عبر الصفحات.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "قارن ترتيب قوائم التنقّل عبر مجموعة الصفحات."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.2.4",
+      "title": "Consistent Identification",
+      "description": "المكوّنات ذات الوظيفة نفسها تُعرَّف باتساق (نفس التسمية/الأيقونة).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "قارن تسمية الوظائف المتكررة (بحث، سلة، تحميل) عبر الصفحات."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.3.3",
+      "title": "Error Suggestion",
+      "description": "عند اكتشاف خطأ إدخال ومعرفة التصحيح، يُقترح على المستخدم.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "أدخل بيانات خاطئة قابلة للتصحيح (تاريخ بصيغة خاطئة) وتحقق من اقتراح التصحيح."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.3.4",
+      "title": "Error Prevention (Legal, Financial, Data)",
+      "description": "العمليات القانونية/المالية قابلة للتراجع أو مُتحقَّق منها أو مُؤكَّدة قبل الإتمام.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "نفّذ عملية شراء/تعديل بيانات وتحقق من خطوة مراجعة وتأكيد قبل الإلزام."
+      },
+      "introduced_in": "WCAG 2.0"
+    },
+    {
+      "code": "wcag-2.2-3.3.8",
+      "title": "Accessible Authentication (Minimum)",
+      "description": "تسجيل الدخول لا يتطلب اختباراً معرفياً (حفظ كلمة سر بلا لصق، ألغاز) بلا بديل.",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "اختبر تدفق الدخول: السماح بلصق كلمة المرور ومديري كلمات المرور، وبدائل لأي CAPTCHA معرفي."
+      },
+      "introduced_in": "WCAG 2.2"
+    },
+    {
+      "code": "wcag-2.2-4.1.3",
+      "title": "Status Messages",
+      "description": "رسائل الحالة (نجاح، خطأ، تحديث سلة) تُبلَّغ برمجياً دون نقل التركيز (ARIA live).",
+      "source_standard": "WCAG 2.2",
+      "wcag_level": "AA",
+      "automatable": false,
+      "test_logic": {
+        "manual_only": true,
+        "expert_guidance": "فعّل أفعالاً تنتج رسائل حالة وتحقق بقارئ شاشة أنها تُقرأ دون نقل التركيز."
+      },
+      "introduced_in": "WCAG 2.1"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "description": "Golden Corpus ground truth — hand-labeled expected engine output per frozen page. Any drift (missed or extra detection) fails the regression suite BEFORE it can silently move customer readiness scores.",
+  "engine": "internal",
+  "expected_issues": [
+    {"page": "shop-home.html", "issue_id": "html-has-lang", "selector": "html"},
+    {"page": "shop-home.html", "issue_id": "meta-viewport", "selector": "meta[name='viewport']"},
+    {"page": "shop-home.html", "issue_id": "link-name", "selector": "a[href='/cart']"},
+    {"page": "shop-home.html", "issue_id": "image-alt", "selector": "img[src='/icons/cart.svg']"},
+    {"page": "shop-home.html", "issue_id": "tabindex", "selector": "nav:nth-of-type(1)"},
+    {"page": "shop-home.html", "issue_id": "image-alt", "selector": "img[src='/hero-banner.jpg']"},
+    {"page": "shop-home.html", "issue_id": "label", "selector": "input[name='newsletter_email']"},
+    {"page": "shop-home.html", "issue_id": "link-name", "selector": "a[href='https://instagram.com/demoshop']"},
+    {"page": "shop-home.html", "issue_id": "image-alt", "selector": "img[src='/icons/instagram.svg']"},
+    {"page": "product-page.html", "issue_id": "document-title", "selector": "html"},
+    {"page": "product-page.html", "issue_id": "image-alt", "selector": "img[src='/products/teapot-2.jpg']"},
+    {"page": "product-page.html", "issue_id": "label", "selector": "select[name='variant']"},
+    {"page": "product-page.html", "issue_id": "link-name", "selector": "a[href='/products/teapot/reviews']"}
+  ],
+  "expected_rule_codes": {
+    "shop-home.html": [
+      "wcag-2.2-1.1.1",
+      "wcag-2.2-1.4.4",
+      "wcag-2.2-2.4.3",
+      "wcag-2.2-2.4.4",
+      "wcag-2.2-3.1.1",
+      "wcag-2.2-3.3.2"
+    ],
+    "product-page.html": [
+      "wcag-2.2-1.1.1",
+      "wcag-2.2-2.4.2",
+      "wcag-2.2-2.4.4",
+      "wcag-2.2-3.3.2"
+    ],
+    "clean-page.html": []
+  }
+}

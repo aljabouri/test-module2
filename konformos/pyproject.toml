@@ -1,0 +1,47 @@
+[project]
+name = "konformos"
+version = "0.1.0"
+description = "KonformOS — Accessibility Compliance Infrastructure (core engine)"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "pydantic>=2.6",
+    "argon2-cffi>=23.1",
+    "PyJWT>=2.8",
+    "fpdf2>=2.7",
+    "pypdf>=4.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+db = [
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg2-binary>=2.9",
+]
+scan = [
+    "playwright>=1.40",
+]
+ai = [
+    "anthropic>=0.40",
+]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "jsonschema>=4.21",
+    "uvicorn>=0.29",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+konformos = ["vendor/*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
