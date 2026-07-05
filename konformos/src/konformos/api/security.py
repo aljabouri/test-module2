@@ -18,7 +18,9 @@ from argon2.exceptions import VerifyMismatchError
 _hasher = PasswordHasher()  # argon2id by default
 
 TOKEN_TTL = timedelta(hours=1)
+ADMIN_TOKEN_TTL = timedelta(minutes=15)  # ISO-01: elevated surface is short-lived
 SENSITIVE_ROLES = {"expert_reviewer", "legal_curator", "admin"}
+ADMIN_ROLES = SENSITIVE_ROLES  # roles allowed onto the /admin surface
 MIN_PASSWORD_LENGTH = 12  # VAL-USER-01
 PUBLIC_REGISTER_ROLES = {"owner"}  # VAL-USER-01: no self-service elevated roles
 
@@ -46,22 +48,32 @@ class TokenClaims:
     organization_id: uuid.UUID
     role: str
     mfa_enabled: bool
+    # ── surface isolation (ISO-01..03) ────────────────────────────────
+    # Two disjoint token populations: "app" (customer workspace) and
+    # "admin" (control plane). Admin endpoints ONLY accept aud=admin;
+    # customer endpoints REJECT aud=admin — no accidental crossover.
+    surface: str = "app"
+    read_only: bool = False           # impersonation tokens can never write
+    actor_id: uuid.UUID | None = None  # the real admin behind an impersonation
 
 
-def create_token(claims: TokenClaims) -> str:
+def create_token(claims: TokenClaims, ttl: timedelta | None = None) -> str:
     now = datetime.now(timezone.utc)
-    return jwt.encode(
-        {
-            "sub": str(claims.user_id),
-            "org": str(claims.organization_id),
-            "role": claims.role,
-            "mfa": claims.mfa_enabled,
-            "iat": now,
-            "exp": now + TOKEN_TTL,
-        },
-        jwt_secret(),
-        algorithm="HS256",
-    )
+    payload = {
+        "sub": str(claims.user_id),
+        "org": str(claims.organization_id),
+        "role": claims.role,
+        "mfa": claims.mfa_enabled,
+        "aud": claims.surface,
+        "iat": now,
+        "exp": now + (ttl or (ADMIN_TOKEN_TTL if claims.surface == "admin"
+                              else TOKEN_TTL)),
+    }
+    if claims.read_only:
+        payload["ro"] = True
+    if claims.actor_id is not None:
+        payload["act"] = str(claims.actor_id)
+    return jwt.encode(payload, jwt_secret(), algorithm="HS256")
 
 
 class AuthError(Exception):
@@ -104,7 +116,8 @@ def verify_totp(secret: str, code: str, window: int = 1) -> bool:
 
 def decode_token(token: str) -> TokenClaims:
     try:
-        payload = jwt.decode(token, jwt_secret(), algorithms=["HS256"])
+        payload = jwt.decode(token, jwt_secret(), algorithms=["HS256"],
+                             options={"verify_aud": False})
     except jwt.ExpiredSignatureError as exc:
         raise AuthError("token_expired", "انتهت صلاحية الجلسة.") from exc
     except jwt.InvalidTokenError as exc:
@@ -114,4 +127,7 @@ def decode_token(token: str) -> TokenClaims:
         organization_id=uuid.UUID(payload["org"]),
         role=payload["role"],
         mfa_enabled=bool(payload.get("mfa", False)),
+        surface=payload.get("aud", "app"),  # legacy tokens are app-surface
+        read_only=bool(payload.get("ro", False)),
+        actor_id=uuid.UUID(payload["act"]) if payload.get("act") else None,
     )

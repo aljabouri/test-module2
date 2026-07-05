@@ -24,7 +24,9 @@
 | `scan/crawler.py` | زاحف Playwright حي: robots.txt، حارس SSRF، أولوية الصفحات الحرجة | BR-SCAN-01/02, VAL-PROP-01 |
 | `scan/worker.py` | طابور فحص غير متزامن (SM-SCAN كاملة، اكتمال بمعاملة واحدة) | SM-SCAN-02, INV-SC-01/02 |
 | `dossier/pdf.py` | Dossier PDF فعلي مختوم على البايتات + قسم الحدود الإلزامي | INV-DS-01/02/03, BR-CUST-03 |
-| `api/dashboard.py` | **لوحة تحكم SPA متطورة** (نظام تصميم بـtokens، ثيم داكن/فاتح، RTL، شريط جانبي، بطاقات مقاييس، عدّادات SVG للجاهزية، فحص حيّ بتتبّع تقدّم، جدول findings + درج إصلاح، Dossier/تحقق، بوابتا القانون والخبير، إعدادات MFA/webhooks/Theme-Intel) على `/app` — بلا build/CDN (آمنة لـCSP/offline) | — |
+| `api/dashboard.py` | **مساحة عمل العميل SPA** (نظام تصميم بـtokens، ثيم داكن/فاتح، RTL، فحص حيّ بتتبّع تقدّم، findings + درج إصلاح، Dossier/تحقق، إعدادات MFA/webhooks/Theme-Intel) على `/app` — **سطح العميل فقط: صفر كود إداري** | ISO-01 |
+| `api/admin_ui.py` | **لوحة التحكم الإدارية المعزولة** على `/admin`: تصعيد TOTP، نظرة عامة على المنصّة، إدارة العملاء 360، بوابتا القانون والخبير، سجل التدقيق بتحقق السلسلة، لوحة النظام | ISO-01..04 |
+| `api/routes_admin.py` | **سطح `/v1/admin/*`**: توكن aud=admin قصير العمر (15د) عبر step-up TOTP؛ قراءة عابرة للمنظمات بـRLS bypass قراءة-فقط؛ Client 360 بصحة قابلة للتفسير + دورة حياة SM-CLIENT + playbook؛ ملاحظات إلحاقية؛ تغيير tier/إيقاف/انتحال قراءة-فقط — كلها في **سجل تدقيق مسلسل بالـhash** | ISO-01..04, CM |
 | `api/main.py` | evaluate/scan-html عديمة الحالة + **`/v1/verify/{hash}` العام** (ذاكرة + قاعدة) + preview | ERR-00 |
 
 ## التشغيل
@@ -33,7 +35,7 @@
 cd konformos
 pip install -e ".[dev,db,scan]"
 alembic upgrade head                              # يتطلب DATABASE_URL أو Postgres محلياً
-pytest                                            # 112 اختباراً (Postgres وaxe يتخطيان تلقائياً إن غابا)
+pytest                                            # 126 اختباراً (Postgres وaxe يتخطيان تلقائياً إن غابا)
 docker compose up                                 # Postgres + API (انظر docker-compose.yml)
 uvicorn --factory konformos.api.main:create_app   # ثم /docs للـOpenAPI
 ```

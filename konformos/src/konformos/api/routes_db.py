@@ -98,16 +98,30 @@ def claims_dep(request: Request) -> TokenClaims:
     if not header.startswith("Bearer "):
         raise ApiError(401, "auth_required", "مصادقة مطلوبة.")
     try:
-        return decode_token(header.removeprefix("Bearer ").strip())
+        claims = decode_token(header.removeprefix("Bearer ").strip())
     except AuthError as exc:
         raise ApiError(401, exc.code, exc.message)
+    # ISO-03: impersonation ("عرض كالعميل") is strictly read-only.
+    if claims.read_only and request.method not in ("GET", "HEAD", "OPTIONS"):
+        raise ApiError(403, "impersonation_read_only",
+                       "جلسة الانتحال للقراءة فقط — لا كتابة باسم العميل.")
+    return claims
 
 
 def authed(session: Session = Depends(db_session),
            claims: TokenClaims = Depends(claims_dep)) -> tuple[Session, TokenClaims]:
+    # ISO-01: admin-surface tokens NEVER work on the customer surface — the
+    # two token populations are disjoint by audience, not by UI convention.
+    if claims.surface != "app":
+        raise ApiError(403, "wrong_surface",
+                       "توكن لوحة التحكم لا يعمل على واجهة العميل (عزل الأسطح).")
     if claims.role in SENSITIVE_ROLES and not claims.mfa_enabled:
         raise ApiError(401, "mfa_required", "MFA إلزامي لهذا الدور (RBAC-02).")
     set_org_context(session, claims.organization_id)
+    org = session.get(Organization, claims.organization_id)
+    if org is not None and getattr(org, "suspended", False):
+        raise ApiError(403, "org_suspended",
+                       "الحساب موقوف — تواصل مع الدعم.")  # admin kill-switch
     return session, claims
 
 

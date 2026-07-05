@@ -3,7 +3,8 @@ served at /app. No build step, no CDN (CSP/offline-safe inside the container):
 system fonts, inline SVG, vanilla JS. Covers the full API surface — auth+MFA,
 properties, fingerprint, compliance profile, scanning with live polling,
 findings + AI/knowledge fixes, dossier + public verify, statement, timeline,
-notifications, billing tiers, legal & expert portals, theme intelligence."""
+notifications, billing tiers, theme intelligence. Customer surface ONLY —
+internal portals live in the isolated /admin console (ISO-01)."""
 
 DASHBOARD_HTML = r"""<!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
@@ -208,8 +209,6 @@ const ICON={
   props:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>',
   bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
   billing:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
-  legal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-3 6a4 4 0 0 0 6 0zM19 7l3 6a4 4 0 0 1-6 0z"/></svg>',
-  expert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
   settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 7"/></svg>',
 };
 
@@ -269,6 +268,8 @@ function logout(){ S.token=""; S.org=null; localStorage.removeItem("k_token"); r
 
 // ─────────────────────────────────────────────────────────── shell
 function roles(){ return (S.org&&S.org.role)||"owner"; }
+// ISO-01: internal portals live on the SEPARATE /admin console — this bundle
+// contains zero admin code. Internal roles just get a doorway link.
 function isInternal(){ return ["legal_curator","expert_reviewer","admin"].includes(roles()); }
 function renderShell(){
   const app=document.getElementById("app");
@@ -279,7 +280,6 @@ function renderShell(){
     ["billing","الاشتراك",ICON.billing],
     ["settings","الإعدادات",ICON.settings],
   ];
-  const internal=[["legal","بوابة القانون",ICON.legal],["expert","بوابة الخبير",ICON.expert]];
   const sub=S.org&&S.org.subscription;
   app.innerHTML="";
   app.appendChild($(`<div>
@@ -304,7 +304,8 @@ function renderShell(){
   const sb=document.getElementById("sidebar");
   nav.forEach(([id,label,icon])=>sb.appendChild(navItem(id,label,icon)));
   if(isInternal()){ sb.appendChild($(`<div class="nav-sec">داخلي</div>`));
-    internal.forEach(([id,label,icon])=>sb.appendChild(navItem(id,label,icon))); }
+    const door=$(`<a class="nav-item" href="/admin">${ICON.settings}<span>لوحة التحكم الإدارية ↗</span></a>`);
+    sb.appendChild(door); }
   document.getElementById("theme-btn").onclick=toggleTheme;
   document.getElementById("logout-btn").onclick=logout;
   document.getElementById("drawer-close").onclick=closeDrawer;
@@ -325,7 +326,7 @@ function closeDrawer(){ document.getElementById("drawer").classList.remove("open
 // ─────────────────────────────────────────────────────────── router
 function route(){ const m=document.getElementById("main"); if(!m)return;
   ({overview:viewOverview,props:viewProps,notifications:viewNotifs,billing:viewBilling,
-    settings:viewSettings,legal:viewLegal,expert:viewExpert,property:viewProperty}[S.view]||viewOverview)(m); }
+    settings:viewSettings,property:viewProperty}[S.view]||viewOverview)(m); }
 
 // ─────────────────────────────────────────────────────────── overview
 async function viewOverview(m){
@@ -637,46 +638,6 @@ function viewSettings(m){
       <div class="faint small" style="margin-top:.4rem">التوقيع: ${esc(d.stack_signature)}</div>`; });
 }
 
-// ─────────────────────────────────────────────────────────── legal portal
-async function viewLegal(m){
-  m.innerHTML=`<h1 class="page-title">بوابة القانون</h1><p class="page-sub">إدارة حزم القواعد والتغييرات القانونية (Legal Curator).</p>
-    <div class="grid" style="grid-template-columns:1fr 1fr">
-      <div class="card"><h3>حزم القواعد</h3><div id="packs"></div></div>
-      <div class="card"><h3>تغييرات بانتظار المراجعة</h3><div id="events"></div></div>
-    </div>`;
-  await guard(async()=>{
-    const [packs,events]=await Promise.all([api("/v1/legal/rule-packs"),api("/v1/legal/change-events?status=pending_review")]);
-    document.getElementById("packs").innerHTML=packs.rule_packs.length?`<table><thead><tr><th>الإصدار</th><th>الحالة</th><th>قواعد</th><th></th></tr></thead><tbody>${
-      packs.rule_packs.map(p=>`<tr><td><code class="small">${esc(p.version)}</code></td>
-        <td><span class="pill small">${esc(p.status)}</span></td><td>${p.rule_count}</td>
-        <td>${p.status==="draft"?`<button class="btn soft sm" onclick="publishPack('${p.version}')">نشر</button>`:""}</td></tr>`).join("")}</tbody></table>`
-      :`<div class="empty">لا حزم.</div>`;
-    document.getElementById("events").innerHTML=events.change_events.length?events.change_events.map(e=>
-      `<div style="padding:.5rem 0;border-bottom:1px solid var(--border)"><strong class="small">${esc(e.change_type)}</strong>
-       <div class="faint small">${esc(e.llm_summary||"")}</div></div>`).join("")
-      :`<div class="empty">لا تغييرات معلّقة.</div>`;
-  });
-}
-window.publishPack=(v)=>guard(async()=>{ const d=await api(`/v1/legal/rule-packs/${v}/publish`,{method:"POST"});
-  ok(`نُشرت ${v}`+(d.recomputed_properties?` — أُعيد حساب ${d.recomputed_properties} متجر`:"")); viewLegal(document.getElementById("main")); });
-
-// ─────────────────────────────────────────────────────────── expert portal
-async function viewExpert(m){
-  m.innerHTML=`<h1 class="page-title">بوابة الخبير</h1><p class="page-sub">مراجعة Prüfstelle البشرية — الاكتشافات اليدوية والتوقيع المؤمَّن.</p>
-    <div class="card"><h3>طابور المراجعة</h3><div id="queue"></div></div>`;
-  await guard(async()=>{ const d=await api("/v1/expert/review-queue");
-    document.getElementById("queue").innerHTML=d.queue.length?`<table><thead><tr><th>الفحص</th><th>التاريخ</th><th></th></tr></thead><tbody>${
-      d.queue.map(q=>`<tr><td><code class="small">${esc(q.scan_id.slice(0,12))}…</code></td>
-        <td class="faint small">${esc(q.created_at)}</td>
-        <td><button class="btn soft sm" onclick="signReview('${q.scan_id}')">توقيع المراجعة</button></td></tr>`).join("")}</tbody></table>`
-      :`<div class="empty">لا فحوصات بانتظار المراجعة.</div>`;
-  });
-}
-window.signReview=(sid)=>{ const ins=prompt("مرجع التأمين المهني (insurance_ref):","VS-2026-001"); if(ins===null)return;
-  guard(async()=>{ await api(`/v1/expert/scans/${sid}/sign`,{method:"POST",body:JSON.stringify({
-    signature:{qualification:"BITV-Test Prüfer"},insurance_ref:ins})});
-    ok("وُقّعت المراجعة وخُتمت في الـTimeline"); viewExpert(document.getElementById("main")); }); };
-
 // ─────────────────────────────────────────────────────────── boot
 async function boot(){
   try{ S.org=await api("/v1/orgs/me"); }catch(e){ return logout(); }
@@ -684,6 +645,14 @@ async function boot(){
 }
 (function init(){
   const t=localStorage.getItem("k_theme"); if(t) document.documentElement.setAttribute("data-theme",t);
+  // ISO-04: admin "view as client" — session-scoped read-only token from the
+  // URL hash. Never persisted; every write is refused server-side anyway.
+  const m=location.hash.match(/^#imp=(.+)$/);
+  if(m){ S.token=decodeURIComponent(m[1]); S.imp=true; history.replaceState(null,"","/app");
+    const b=$(`<div style="position:sticky;top:0;z-index:99;background:rgba(251,191,36,.14);color:var(--warn,#fbbf24);
+      border-bottom:1px solid rgba(251,191,36,.4);padding:.4rem 1rem;font-size:.85rem;text-align:center">
+      🔭 جلسة انتحال للقراءة فقط — كل الكتابات مرفوضة، والجلسة مسجّلة في سجل التدقيق</div>`);
+    document.body.prepend(b); }
   if(S.token) boot(); else renderAuth();
 })();
 </script>

@@ -54,6 +54,7 @@ class Organization(TimestampMixin, Base):
     billing_email: Mapped[str | None] = mapped_column(Text)
     country: Mapped[str | None] = mapped_column(Text)
     data_sharing_consent: Mapped[bool] = mapped_column(Boolean, default=False)
+    suspended: Mapped[bool] = mapped_column(Boolean, default=False)  # admin kill-switch
 
 
 class User(TimestampMixin, Base):
@@ -317,3 +318,44 @@ class ExpertReview(TimestampMixin, Base):
     signature: Mapped[dict | None] = mapped_column(JSONB)
     insurance_ref: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text, default="in_progress")
+
+
+# ── admin control plane (ISO/CM) — isolated from the customer surface ────
+class ClientProfile(TimestampMixin, Base):
+    """CRM overlay per organization — lifecycle is auto-derived from live
+    signals unless pinned by an admin (SM-CLIENT)."""
+    __tablename__ = "client_profiles"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id"), unique=True)
+    lifecycle: Mapped[str] = mapped_column(Text, default="onboarding")
+    lifecycle_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    account_owner: Mapped[str | None] = mapped_column(Text)
+    tags: Mapped[list | None] = mapped_column(ARRAY(Text))
+
+
+class ClientNote(Base):
+    """Append-only interaction log (trigger-enforced, like the timeline)."""
+    __tablename__ = "client_notes"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id"))
+    author_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    kind: Mapped[str] = mapped_column(Text, default="note")  # note|call|email|escalation|decision
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class AdminAuditLog(Base):
+    """Every admin action, hash-chained like the evidence timeline (INV-TL-02/03
+    machinery reused) — tampering with the control plane is detectable."""
+    __tablename__ = "admin_audit_log"
+    id: Mapped[uuid.UUID] = uuid_pk()
+    sequence_number: Mapped[int] = mapped_column(Integer, unique=True)
+    actor_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    action: Mapped[str] = mapped_column(Text)
+    target_type: Mapped[str | None] = mapped_column(Text)
+    target_id: Mapped[str | None] = mapped_column(Text)
+    payload: Mapped[dict | None] = mapped_column(JSONB)
+    content_hash: Mapped[str] = mapped_column(Text)
+    prev_hash: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

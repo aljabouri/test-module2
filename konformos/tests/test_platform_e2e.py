@@ -383,3 +383,11 @@ def test_14_dashboard_served(platform):
     page = platform["client"].get("/app")
     assert page.status_code == 200
     assert "KonformOS" in page.text and "لوحة التحكم" in page.text
+    # ISO-01: the customer bundle must contain ZERO admin portal code
+    assert "/v1/admin/" not in page.text and "publishPack" not in page.text
+
+    admin_page = platform["client"].get("/admin")
+    assert admin_page.status_code == 200
+    assert "KonformOS Admin" in admin_page.text
+    # …and the admin bundle is a different document entirely
+    assert admin_page.text != page.text

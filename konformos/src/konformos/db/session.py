@@ -40,6 +40,14 @@ def set_system_context(session: Session) -> None:
     session.execute(text("SELECT set_config('app.rls_bypass', 'system', false)"))
 
 
+def set_admin_context(session: Session) -> None:
+    """ISO-02: the control plane reads across ALL organizations through a
+    named, SELECT-only RLS bypass (migration 0005). Writes stay forbidden on
+    customer tables — admin mutations go through named, audited flows only."""
+    session.execute(text("SELECT set_config('app.current_org', '', false)"))
+    session.execute(text("SELECT set_config('app.rls_bypass', 'admin_ro', false)"))
+
+
 def rls_enforceable(bind) -> bool | None:
     """INV-ORG-01 guard: RLS NEVER applies to superusers or BYPASSRLS roles —
     a platform connected that way runs with org isolation silently OFF.

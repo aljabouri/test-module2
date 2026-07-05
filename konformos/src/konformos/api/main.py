@@ -116,6 +116,7 @@ def create_app(
     import os
     import time as time_module
 
+    from konformos.api.routes_admin import router as admin_router
     from konformos.api.routes_db import ApiError, router as db_router
     from konformos.api.routes_growth import router as growth_router
 
@@ -176,6 +177,7 @@ def create_app(
             pass  # fresh DB / migrations not applied yet — nothing to recover
     app.include_router(db_router)
     app.include_router(growth_router)
+    app.include_router(admin_router)  # ISO-01: aud=admin tokens only
 
     @app.exception_handler(ApiError)
     async def _api_error(request: Request, exc: ApiError):
@@ -407,6 +409,13 @@ def create_app(
     def dashboard():
         from konformos.api.dashboard import DASHBOARD_HTML
         return HTMLResponse(content=DASHBOARD_HTML)
+
+    @app.get("/admin", response_class=HTMLResponse)
+    def admin_console():
+        # ISO-01: a separate SPA on a separate path — the customer bundle
+        # contains zero admin code, and vice versa.
+        from konformos.api.admin_ui import ADMIN_HTML
+        return HTMLResponse(content=ADMIN_HTML)
 
     @app.post("/v1/preview")
     def preview(body: PreviewRequest):
