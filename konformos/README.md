@@ -24,7 +24,7 @@
 | `scan/crawler.py` | زاحف Playwright حي: robots.txt، حارس SSRF، أولوية الصفحات الحرجة | BR-SCAN-01/02, VAL-PROP-01 |
 | `scan/worker.py` | طابور فحص غير متزامن (SM-SCAN كاملة، اكتمال بمعاملة واحدة) | SM-SCAN-02, INV-SC-01/02 |
 | `dossier/pdf.py` | Dossier PDF فعلي مختوم على البايتات + قسم الحدود الإلزامي | INV-DS-01/02/03, BR-CUST-03 |
-| `api/dashboard.py` | لوحة تحكم v0 (تسجيل → فحص → Dossier → تحقق) على `/app` | — |
+| `api/dashboard.py` | **لوحة تحكم SPA متطورة** (نظام تصميم بـtokens، ثيم داكن/فاتح، RTL، شريط جانبي، بطاقات مقاييس، عدّادات SVG للجاهزية، فحص حيّ بتتبّع تقدّم، جدول findings + درج إصلاح، Dossier/تحقق، بوابتا القانون والخبير، إعدادات MFA/webhooks/Theme-Intel) على `/app` — بلا build/CDN (آمنة لـCSP/offline) | — |
 | `api/main.py` | evaluate/scan-html عديمة الحالة + **`/v1/verify/{hash}` العام** (ذاكرة + قاعدة) + preview | ERR-00 |
 
 ## التشغيل
